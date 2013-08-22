@@ -2,10 +2,10 @@
 
 Summary: Sugar toolkit GTK+ 3
 Name:    sugar-toolkit-gtk3
-Version: 0.99.1
-Release: 2%{?dist}
+Version: 0.99.2.git20130820
+Release: 1
 URL:     http://wiki.laptop.org/go/Sugar
-Source0: http://download.sugarlabs.org/sources/sucrose/glucose/%{name}/%{name}-%{version}.tar.xz
+Source0: sugar-toolkit-gtk3-0.99.2.git20130820.tar
 Source1: macros.sugar
 License: LGPLv2+
 Group:   System Environment/Libraries
@@ -30,7 +30,8 @@ Requires: pygobject3
 Requires: python-dateutil
 Requires: sugar-datastore
 Requires: unzip
-Requires: libwebkit2gtk
+# TEMPORARY disable libwebkit2gtk dependency
+#Requires: libwebkit2gtk
 
 %description
 Sugar is the core of the OLPC Human Interface. The toolkit provides
