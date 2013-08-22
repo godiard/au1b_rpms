@@ -1,0 +1,230 @@
+From 4ab1837e7178ac990721f264f446bd3c3f1fc0f4 Mon Sep 17 00:00:00 2001
+From: Walter Bender <walter@sugarlabs.org>
+Date: Fri, 16 Aug 2013 14:53:23 -0400
+Subject: [PATCH] new adhoc icons
+
+---
+ .../scalable/device/network-adhoc-1-connected.svg  | 24 +++++++++----
+ icons/scalable/device/network-adhoc-1.svg          | 13 ++++---
+ .../scalable/device/network-adhoc-11-connected.svg | 41 +++++++++++++++++-----
+ icons/scalable/device/network-adhoc-11.svg         | 30 ++++++++++++----
+ .../scalable/device/network-adhoc-6-connected.svg  | 31 ++++++++++++----
+ icons/scalable/device/network-adhoc-6.svg          | 20 ++++++++---
+ 6 files changed, 123 insertions(+), 36 deletions(-)
+
+diff --git a/icons/scalable/device/network-adhoc-1-connected.svg b/icons/scalable/device/network-adhoc-1-connected.svg
+index 8365879..53c2aba 100644
+--- a/icons/scalable/device/network-adhoc-1-connected.svg
++++ b/icons/scalable/device/network-adhoc-1-connected.svg
+@@ -3,10 +3,22 @@
+ 	<!ENTITY fill_color "#ffffff">
+ ]>
+ <svg enable-background="new 0 0 55 55" height="55px" id="Layer_1" version="1.1" viewBox="0 0 55 55" width="55px" x="0px" xml:space="preserve" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" y="0px">
+-   <g display="inline" id="network-adhoc-1-connected">
+-     <circle cx="27.375" cy="27.5" fill="&fill_color;" r="19.0" stroke="&stroke_color;" stroke-width="4"/>
+-     <circle cx="27.375" cy="27.5" fill="&stroke_color;" r="4"/>
+-     <path d="M9.471,45.697    c-9.958-9.958-9.959-26.104,0-36.062" fill="none" stroke="&stroke_color;" stroke-linecap="round" stroke-width="3.5"/>
+-     <path d="M45.533,9.635    c9.959,9.958,9.958,26.104,0,36.062" fill="none" stroke="&stroke_color;" stroke-linecap="round" stroke-width="3.5"/>
+-   </g>
++<path
++     d="m 45.753619,44.716729 c 0,0 1.522,0.146 2.417,-1.289 0.895,-1.435 -0.068,-2.755 -0.068,-2.755 l -18.182,-28.857 c 0,0 -0.584,-1.414 -2.271,-1.53 -1.688,-0.117 -2.401,1.353 -2.401,1.353 l -18.3519998,29.034 c 0,0 -0.962,1.32 -0.067,2.755 0.895,1.435 2.417,1.289 2.417,1.289 H 45.753619 z"
++     style="fill:&fill_color;;stroke:&stroke_color;;stroke-width:3.5;" />
++<circle
++     cx="27.375"
++     cy="27.5"
++     r="4"
++     transform="translate(0.125,4)"
++     style="fill:&stroke_color;" />
++<path
++     d="m 36.5,13.125 c -3.465,-4.9349991 -4.476,-8.0000001 -9,-8.0000001 -4.524,0 -5.956,3.487001 -9,8.0000001"
++     style="fill:none;stroke:&stroke_color;;stroke-width:2.75;stroke-linecap:round" />
++<path
++     d="m 4.7566874,34.451756 c -2.5413341,5.468278 -4.69020293,7.87633 -2.428203,11.794229 2.2620003,3.917899 5.9978314,3.414547 11.4282036,3.794229"
++     style="fill:none;stroke:&stroke_color;;stroke-width:2.75;stroke-linecap:round" />
++<path
++     d="m 50.243313,34.451756 c 2.541334,5.468278 4.690203,7.87633 2.428203,11.794229 -2.262001,3.917899 -5.997832,3.414547 -11.428204,3.794229"
++     style="fill:none;stroke:&stroke_color;;stroke-width:2.75;stroke-linecap:round" />
+ </svg>
+diff --git a/icons/scalable/device/network-adhoc-1.svg b/icons/scalable/device/network-adhoc-1.svg
+index 0848527..f2c3780 100644
+--- a/icons/scalable/device/network-adhoc-1.svg
++++ b/icons/scalable/device/network-adhoc-1.svg
+@@ -3,8 +3,13 @@
+ 	<!ENTITY fill_color "#ffffff">
+ ]>
+ <svg enable-background="new 0 0 55 55" height="55px" id="Layer_1" version="1.1" viewBox="0 0 55 55" width="55px" x="0px" xml:space="preserve" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" y="0px">
+-   <g display="inline" id="network-adhoc-1">
+-     <circle cx="27.375" cy="27.5" fill="&fill_color;" r="19.0" stroke="&stroke_color;" stroke-width="4"/>
+-     <circle cx="27.375" cy="27.5" fill="&stroke_color;" r="4"/>
+-   </g>
++<path
++     d="m 45.753619,44.716729 c 0,0 1.522,0.146 2.417,-1.289 0.895,-1.435 -0.068,-2.755 -0.068,-2.755 l -18.182,-28.857 c 0,0 -0.584,-1.414 -2.271,-1.53 -1.688,-0.117 -2.401,1.353 -2.401,1.353 l -18.3519998,29.034 c 0,0 -0.962,1.32 -0.067,2.755 0.895,1.435 2.417,1.289 2.417,1.289 H 45.753619 z"
++     style="fill:&fill_color;;stroke:&stroke_color;;stroke-width:3.5;" />
++<circle
++     cx="27.375"
++     cy="27.5"
++     r="4"
++     transform="translate(0.125,4)"
++     style="fill:&stroke_color;" />
+ </svg>
+diff --git a/icons/scalable/device/network-adhoc-11-connected.svg b/icons/scalable/device/network-adhoc-11-connected.svg
+index 167ad02..a34da2e 100644
+--- a/icons/scalable/device/network-adhoc-11-connected.svg
++++ b/icons/scalable/device/network-adhoc-11-connected.svg
+@@ -3,12 +3,37 @@
+ 	<!ENTITY fill_color "#ffffff">
+ ]>
+ <svg enable-background="new 0 0 55 55" height="55px" id="Layer_1" version="1.1" viewBox="0 0 55 55" width="55px" x="0px" xml:space="preserve" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" y="0px">
+-   <g display="inline" id="network-adhoc-11-connected">
+-     <circle cx="27.375" cy="27.5" fill="&fill_color;" r="19.0" stroke="&stroke_color;" stroke-width="4"/>
+-     <circle cx="27.375" cy="20.5" fill="&stroke_color;" r="4"/>
+-     <rect height="4" width="12" x="21.375" y="26.5" fill="&stroke_color;"/>
+-     <rect height="4" width="12" x="21.375" y="32.5" fill="&stroke_color;"/>
+-     <path d="M9.471,45.697    c-9.958-9.958-9.959-26.104,0-36.062" fill="none" stroke="&stroke_color;" stroke-linecap="round" stroke-width="3.5"/>
+-     <path d="M45.533,9.635    c9.959,9.958,9.958,26.104,0,36.062" fill="none" stroke="&stroke_color;" stroke-linecap="round" stroke-width="3.5"/>
+-   </g>
++<path
++     d="m 45.753619,44.716729 c 0,0 1.522,0.146 2.417,-1.289 0.895,-1.435 -0.068,-2.755 -0.068,-2.755 l -18.182,-28.857 c 0,0 -0.584,-1.414 -2.271,-1.53 -1.688,-0.117 -2.401,1.353 -2.401,1.353 l -18.3519998,29.034 c 0,0 -0.962,1.32 -0.067,2.755 0.895,1.435 2.417,1.289 2.417,1.289 H 45.753619 z"
++     style="fill:&fill_color;;stroke:&stroke_color;;stroke-width:3.5;" />
++<circle
++     cx="27.375"
++     cy="27.5"
++     r="4"
++     transform="translate(0.125,-3.5)"
++     id="circle3174"
++     style="fill:&stroke_color;" />
++<circle
++     cx="27.375"
++     cy="27.5"
++     r="4"
++     transform="translate(-7.375,8.5)"
++     id="circle3174-5"
++     style="fill:&stroke_color;" />
++<circle
++     cx="27.375"
++     cy="27.5"
++     r="4"
++     transform="translate(7.125,8.5)"
++     id="circle3174-5-0"
++     style="fill:&stroke_color;" />
++<path
++     d="m 36.5,13.125 c -3.465,-4.9349991 -4.476,-8.0000001 -9,-8.0000001 -4.524,0 -5.956,3.487001 -9,8.0000001"
++     style="fill:none;stroke:&stroke_color;;stroke-width:2.75;stroke-linecap:round" />
++<path
++     d="m 4.7566874,34.451756 c -2.5413341,5.468278 -4.69020293,7.87633 -2.428203,11.794229 2.2620003,3.917899 5.9978314,3.414547 11.4282036,3.794229"
++     style="fill:none;stroke:&stroke_color;;stroke-width:2.75;stroke-linecap:round" />
++<path
++     d="m 50.243313,34.451756 c 2.541334,5.468278 4.690203,7.87633 2.428203,11.794229 -2.262001,3.917899 -5.997832,3.414547 -11.428204,3.794229"
++     style="fill:none;stroke:&stroke_color;;stroke-width:2.75;stroke-linecap:round" />
+ </svg>
+diff --git a/icons/scalable/device/network-adhoc-11.svg b/icons/scalable/device/network-adhoc-11.svg
+index 762bea0..ecb3e6a 100644
+--- a/icons/scalable/device/network-adhoc-11.svg
++++ b/icons/scalable/device/network-adhoc-11.svg
+@@ -3,10 +3,28 @@
+ 	<!ENTITY fill_color "#ffffff">
+ ]>
+ <svg enable-background="new 0 0 55 55" height="55px" id="Layer_1" version="1.1" viewBox="0 0 55 55" width="55px" x="0px" xml:space="preserve" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" y="0px">
+-   <g display="inline" id="network-adhoc-11">
+-     <circle cx="27.375" cy="27.5" fill="&fill_color;" r="19.0" stroke="&stroke_color;" stroke-width="4"/>
+-     <circle cx="27.375" cy="20.5" fill="&stroke_color;" r="4"/>
+-     <rect height="4" width="12" x="21.375" y="26.5" fill="&stroke_color;"/>
+-     <rect height="4" width="12" x="21.375" y="32.5" fill="&stroke_color;"/>
+-   </g>
++<path
++     d="m 45.753619,44.716729 c 0,0 1.522,0.146 2.417,-1.289 0.895,-1.435 -0.068,-2.755 -0.068,-2.755 l -18.182,-28.857 c 0,0 -0.584,-1.414 -2.271,-1.53 -1.688,-0.117 -2.401,1.353 -2.401,1.353 l -18.3519998,29.034 c 0,0 -0.962,1.32 -0.067,2.755 0.895,1.435 2.417,1.289 2.417,1.289 H 45.753619 z"
++     style="fill:&fill_color;;stroke:&stroke_color;;stroke-width:3.5;" />
++<circle
++     cx="27.375"
++     cy="27.5"
++     r="4"
++     transform="translate(0.125,-3.5)"
++     id="circle3174"
++     style="fill:&stroke_color;" />
++<circle
++     cx="27.375"
++     cy="27.5"
++     r="4"
++     transform="translate(-7.375,8.5)"
++     id="circle3174-5"
++     style="fill:&stroke_color;" />
++<circle
++     cx="27.375"
++     cy="27.5"
++     r="4"
++     transform="translate(7.125,8.5)"
++     id="circle3174-5-0"
++     style="fill:&stroke_color;" />
+ </svg>
+diff --git a/icons/scalable/device/network-adhoc-6-connected.svg b/icons/scalable/device/network-adhoc-6-connected.svg
+index 56b0934..e478539 100644
+--- a/icons/scalable/device/network-adhoc-6-connected.svg
++++ b/icons/scalable/device/network-adhoc-6-connected.svg
+@@ -3,11 +3,28 @@
+ 	<!ENTITY fill_color "#ffffff">
+ ]>
+ <svg enable-background="new 0 0 55 55" height="55px" id="Layer_1" version="1.1" viewBox="0 0 55 55" width="55px" x="0px" xml:space="preserve" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" y="0px">
+-   <g display="inline" id="network-adhoc-6-connected">
+-     <circle cx="27.375" cy="27.5" fill="&fill_color;" r="19.0" stroke="&stroke_color;" stroke-width="4"/>
+-     <circle cx="27.375" cy="24.5" fill="&stroke_color;" r="4"/>
+-     <rect height="4" width="12" x="21.375" y="30.5" fill="&stroke_color;"/>
+-     <path d="M9.471,45.697    c-9.958-9.958-9.959-26.104,0-36.062" fill="none" stroke="&stroke_color;" stroke-linecap="round" stroke-width="3.5"/>
+-     <path d="M45.533,9.635    c9.959,9.958,9.958,26.104,0,36.062" fill="none" stroke="&stroke_color;" stroke-linecap="round" stroke-width="3.5"/>
+-   </g>
++<path
++     d="m 45.753619,44.716729 c 0,0 1.522,0.146 2.417,-1.289 0.895,-1.435 -0.068,-2.755 -0.068,-2.755 l -18.182,-28.857 c 0,0 -0.584,-1.414 -2.271,-1.53 -1.688,-0.117 -2.401,1.353 -2.401,1.353 l -18.3519998,29.034 c 0,0 -0.962,1.32 -0.067,2.755 0.895,1.435 2.417,1.289 2.417,1.289 H 45.753619 z"
++     style="fill:&fill_color;;stroke:&stroke_color;;stroke-width:3.5;" />
++<circle
++     cx="27.375"
++     cy="27.5"
++     r="4"
++     transform="translate(0.125,-3.5)"
++     style="fill:&stroke_color;" />
++<circle
++     cx="27.375"
++     cy="27.5"
++     r="4"
++     transform="translate(0.125,8.5)"
++     style="fill:&stroke_color;" />
++<path
++     d="m 36.5,13.125 c -3.465,-4.9349991 -4.476,-8.0000001 -9,-8.0000001 -4.524,0 -5.956,3.487001 -9,8.0000001"
++     style="fill:none;stroke:&stroke_color;;stroke-width:2.75;stroke-linecap:round" />
++<path
++     d="m 4.7566874,34.451756 c -2.5413341,5.468278 -4.69020293,7.87633 -2.428203,11.794229 2.2620003,3.917899 5.9978314,3.414547 11.4282036,3.794229"
++     style="fill:none;stroke:&stroke_color;;stroke-width:2.75;stroke-linecap:round" />
++<path
++     d="m 50.243313,34.451756 c 2.541334,5.468278 4.690203,7.87633 2.428203,11.794229 -2.262001,3.917899 -5.997832,3.414547 -11.428204,3.794229"
++     style="fill:none;stroke:&stroke_color;;stroke-width:2.75;stroke-linecap:round" />
+ </svg>
+diff --git a/icons/scalable/device/network-adhoc-6.svg b/icons/scalable/device/network-adhoc-6.svg
+index 18df8fb..c8e6d50 100644
+--- a/icons/scalable/device/network-adhoc-6.svg
++++ b/icons/scalable/device/network-adhoc-6.svg
+@@ -3,9 +3,19 @@
+ 	<!ENTITY fill_color "#ffffff">
+ ]>
+ <svg enable-background="new 0 0 55 55" height="55px" id="Layer_1" version="1.1" viewBox="0 0 55 55" width="55px" x="0px" xml:space="preserve" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" y="0px">
+-   <g display="inline" id="network-adhoc-6">
+-     <circle cx="27.375" cy="27.5" fill="&fill_color;" r="19.0" stroke="&stroke_color;" stroke-width="4"/>
+-     <circle cx="27.375" cy="24.5" fill="&stroke_color;" r="4"/>
+-     <rect height="4" width="12" x="21.375" y="30.5" fill="&stroke_color;"/>
+-   </g>
++<path
++     d="m 45.753619,44.716729 c 0,0 1.522,0.146 2.417,-1.289 0.895,-1.435 -0.068,-2.755 -0.068,-2.755 l -18.182,-28.857 c 0,0 -0.584,-1.414 -2.271,-1.53 -1.688,-0.117 -2.401,1.353 -2.401,1.353 l -18.3519998,29.034 c 0,0 -0.962,1.32 -0.067,2.755 0.895,1.435 2.417,1.289 2.417,1.289 H 45.753619 z"
++     style="fill:&fill_color;;stroke:&stroke_color;;stroke-width:3.5;" />
++<circle
++     cx="27.375"
++     cy="27.5"
++     r="4"
++     transform="translate(0.125,-3.5)"
++     style="fill:&stroke_color;" />
++<circle
++     cx="27.375"
++     cy="27.5"
++     r="4"
++     transform="translate(0.125,8.5)"
++     style="fill:&stroke_color;" />
+ </svg>
+-- 
+1.8.1.4
+
