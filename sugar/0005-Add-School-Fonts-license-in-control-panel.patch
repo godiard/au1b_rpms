@@ -1,0 +1,38 @@
+From f0a474707fbb49a8346367f1e4bf69acfd4bb6a8 Mon Sep 17 00:00:00 2001
+From: Gonzalo Odiard <godiard@gmail.com>
+Date: Fri, 16 Aug 2013 10:16:41 -0300
+Subject: [PATCH 5/6] Add School Fonts license in control panel
+
+Simplified version of the Dextrose patch
+
+Signed-off-by: Gonzalo Odiard <gonzalo@laptop.org>
+---
+ extensions/cpsection/aboutcomputer/view.py | 12 ++++++++++++
+ 1 file changed, 12 insertions(+)
+
+diff --git a/extensions/cpsection/aboutcomputer/view.py b/extensions/cpsection/aboutcomputer/view.py
+index f8a1323..c5b86da 100644
+--- a/extensions/cpsection/aboutcomputer/view.py
++++ b/extensions/cpsection/aboutcomputer/view.py
+@@ -211,6 +211,18 @@ class AboutComputer(SectionView):
+         label_info.show()
+         vbox_copyright.pack_start(label_info, False, True, 0)
+ 
++        # Add School Fonts license
++        fonts_text = _(
++            'School Fonts © 2011 Free for use as part of'
++            ' the One Laptop per Child and Sugar projects.'
++            ' For any other use, visit: http://www.schoolfonts.com.au/')
++        label_fonts = Gtk.Label(label=fonts_text)
++        label_fonts.set_alignment(0, 0)
++        label_fonts.set_line_wrap(True)
++        label_fonts.set_size_request(Gdk.Screen.width() / 2, -1)
++        label_fonts.show()
++        vbox_copyright.pack_start(label_fonts, False, True, 0)
++
+         expander = Gtk.Expander(label=_('Full license:'))
+         expander.connect('notify::expanded', self.license_expander_cb)
+         expander.show()
+-- 
+1.8.1.4
+

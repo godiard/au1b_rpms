@@ -2,13 +2,22 @@
 
 Summary: Constructionist learning platform
 Name:    sugar
-Version: 0.99.1
-Release: 3%{?dist}
+Version: 0.99.2.git20130816
+Release: 1.olpcau
 URL:     http://sugarlabs.org/
 License: GPLv2+
 Group:   User Interface/Desktops
-Source0: http://download.sugarlabs.org/sources/sucrose/glucose/%{name}/%{name}-%{version}.tar.xz
+Source0: sugar-0.99.2.git20130816.tar
 Patch0:  sugar-gnomekeyring.patch
+Patch1:  0001-add-age-and-gender-to-intro-and-aboutme-section-of-c.patch
+Patch2:  0001-add-dbus-method-to-update-favorites.patch
+Patch3:  0001-Backup-and-Restore-to-a-mounted-device.patch
+Patch4:  0002-Add-proxy-configuration-support-to-Network-Control-P.patch
+Patch5:  0003-Control-Panel-Add-aoption-to-launch-the-network-mana.patch
+Patch6:  0004-Add-model-information-in-the-about-computer-control-.patch
+Patch7:  0005-Add-School-Fonts-license-in-control-panel.patch
+Patch8:  0006-Add-last-updated-information-in-the-control-Panel.patch
+
 
 BuildRequires: gettext
 BuildRequires: GConf2-devel
@@ -148,7 +157,18 @@ This is the Sugar Web Account control panel
 %setup -q
 %patch0 -p1 -b .keyring
 
+%patch1 -p1 -b .age_page
+%patch2 -p1 -b .add_dbus_method
+%patch3 -p1 -b .backup
+%patch4 -p1 -b .proxy_support
+%patch5 -p1 -b .add_nmce_launcher
+%patch6 -p1 -b .model_info
+%patch7 -p1 -b .schools_fonts_info
+%patch8 -p1 -b .last_updated_info
+
 %build
+# need run it again to include new files
+./autogen.sh
 %configure
 make
 

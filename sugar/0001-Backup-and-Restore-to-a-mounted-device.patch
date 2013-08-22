@@ -1,0 +1,774 @@
+From 30394d63dfbabbf74df044404b7a870365454e54 Mon Sep 17 00:00:00 2001
+From: Gonzalo Odiard <godiard@gmail.com>
+Date: Tue, 13 Aug 2013 18:58:59 -0300
+Subject: [PATCH 1/6] Backup and Restore to a mounted device
+
+Based in the current functionality in Dextrose
+The only changes are:
+* Pep8 & pyflakes fixes
+* Updates by changes in Gio api.
+* Fixed string concats for proper l10n.
+* Updates for changes in index control on the datastore.
+* Other changes needed to apply on actual sugar master.
+* Files added to POTFILES.in to support gettext.
+
+Signed-off-by: Gonzalo Odiard <gonzalo@laptop.org>
+---
+ bin/Makefile.am                       |   4 +-
+ bin/journal-backup-volume             |  51 ++++++
+ bin/journal-restore-volume            |  66 ++++++++
+ po/POTFILES.in                        |   3 +
+ src/jarabe/journal/Makefile.am        |   1 +
+ src/jarabe/journal/misc.py            |  50 ++++++
+ src/jarabe/journal/processdialog.py   | 286 ++++++++++++++++++++++++++++++++++
+ src/jarabe/journal/volumestoolbar.py  |   4 +-
+ src/jarabe/model/Makefile.am          |   1 +
+ src/jarabe/model/processmanagement.py | 111 +++++++++++++
+ src/jarabe/view/palettes.py           |  49 ++++++
+ 11 files changed, 623 insertions(+), 3 deletions(-)
+ create mode 100644 bin/journal-backup-volume
+ create mode 100644 bin/journal-restore-volume
+ create mode 100644 src/jarabe/journal/processdialog.py
+ create mode 100644 src/jarabe/model/processmanagement.py
+
+diff --git a/bin/Makefile.am b/bin/Makefile.am
+index bd38323..3404d69 100644
+--- a/bin/Makefile.am
++++ b/bin/Makefile.am
+@@ -1,7 +1,9 @@
+ python_scripts =		\
+ 	sugar-control-panel	\
+ 	sugar-install-bundle	\
+-	sugar-launch
++	sugar-launch \
++	journal-backup-volume	\
++	journal-restore-volume
+ 
+ bin_SCRIPTS = 			\
+ 	sugar			\
+diff --git a/bin/journal-backup-volume b/bin/journal-backup-volume
+new file mode 100644
+index 0000000..ca8a78d
+--- /dev/null
++++ b/bin/journal-backup-volume
+@@ -0,0 +1,51 @@
++#!/usr/bin/env python
++# Copyright (C) 2010, Paraguay Educa <tecnologia@paraguayeduca.org>
++#
++# This program is free software: you can redistribute it and/or modify
++# it under the terms of the GNU General Public License as published by
++# the Free Software Foundation, either version 3 of the License, or
++# (at your option) any later version.
++#
++# This program is distributed in the hope that it will be useful,
++# but WITHOUT ANY WARRANTY; without even the implied warranty of
++# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++# GNU General Public License for more details.
++#
++# You should have received a copy of the GNU General Public License
++# along with this program.  If not, see <http://www.gnu.org/licenses/>.
++#
++
++import os
++import sys
++import subprocess
++import logging
++
++from sugar import env
++
++backup_identifier = sys.argv[2]
++volume_path = sys.argv[1]
++
++if len(sys.argv) != 3:
++    print 'Usage: %s <volume_path> <backup_identifier>' % sys.argv[0]
++    exit(1)
++
++logging.debug('Backup started')
++
++backup_path = os.path.join(volume_path, 'backup', backup_identifier)
++
++if not os.path.exists(backup_path):
++    os.makedirs(backup_path)
++
++result = 0
++try:
++    cmd = ['tar', '-C', env.get_profile_path(), '-czf',
++           os.path.join(backup_path, 'datastore.tar.gz'), 'datastore']
++
++    subprocess.check_call(cmd)
++
++except Exception, e:
++    logging.error('Backup failed: %s', str(e))
++    result = 1
++
++logging.debug('Backup finished')
++exit(result)
+diff --git a/bin/journal-restore-volume b/bin/journal-restore-volume
+new file mode 100644
+index 0000000..b7738ad
+--- /dev/null
++++ b/bin/journal-restore-volume
+@@ -0,0 +1,66 @@
++#!/usr/bin/env python
++# Copyright (C) 2010, Paraguay Educa <tecnologia@paraguayeduca.org>
++#
++# This program is free software: you can redistribute it and/or modify
++# it under the terms of the GNU General Public License as published by
++# the Free Software Foundation, either version 3 of the License, or
++# (at your option) any later version.
++#
++# This program is distributed in the hope that it will be useful,
++# but WITHOUT ANY WARRANTY; without even the implied warranty of
++# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++# GNU General Public License for more details.
++
++# You should have received a copy of the GNU General Public License
++# along with this program.  If not, see <http://www.gnu.org/licenses/>.
++#
++
++import os
++import sys
++import shutil
++import logging
++import subprocess
++
++from sugar import env
++
++backup_identifier = sys.argv[2]
++volume_path = sys.argv[1]
++
++if len(sys.argv) != 3:
++    print 'Usage: %s <volume_path> <backup_identifier>' % sys.argv[0]
++    exit(1)
++
++logging.debug('Restore started')
++
++journal_path = os.path.join(env.get_profile_path(), 'datastore')
++backup_path = os.path.join(volume_path, 'backup', backup_identifier,
++                           'datastore.tar.gz')
++
++if not os.path.exists(backup_path):
++    logging.error('Could not find backup file %s', backup_path)
++    exit(1)
++
++subprocess.call(['pkill', '-9', '-f', 'python.*datastore-service'])
++
++result = 0
++try:
++    if os.path.exists(journal_path):
++        shutil.rmtree(journal_path)
++
++    subprocess.check_call(['tar', '-C', env.get_profile_path(), '-xzf',
++                           backup_path])
++
++except Exception, e:
++    logging.error('Restore failed: %s', str(e))
++    result = 1
++
++try:
++    shutil.rmtree(os.path.join(journal_path, 'index'))
++    os.remove(os.path.join(journal_path, 'ds_clean'))
++    os.remove(os.path.join(journal_path, 'index_updated'))
++    os.remove(os.path.join(journal_path, 'version'))
++except:
++    logging.debug('Restore has no index files')
++
++logging.debug('Restore finished')
++exit(result)
+diff --git a/po/POTFILES.in b/po/POTFILES.in
+index e86ae8b..03eebc1 100644
+--- a/po/POTFILES.in
++++ b/po/POTFILES.in
+@@ -73,6 +73,9 @@ src/jarabe/journal/palettes.py
+ src/jarabe/journal/volumestoolbar.py
+ src/jarabe/journal/iconmodel.py
+ src/jarabe/journal/iconview.py
++src/jarabe/journal/processdialog.py
++src/jarabe/journal/volumestoolbar.py
++src/jarabe/model/processmanagement.py
+ src/jarabe/model/network.py
+ src/jarabe/view/buddymenu.py
+ src/jarabe/view/keyhandler.py
+diff --git a/src/jarabe/journal/Makefile.am b/src/jarabe/journal/Makefile.am
+index 9a2b831..b46afb8 100644
+--- a/src/jarabe/journal/Makefile.am
++++ b/src/jarabe/journal/Makefile.am
+@@ -17,4 +17,5 @@ sugar_PYTHON =				\
+ 	model.py			\
+ 	objectchooser.py		\
+ 	palettes.py			\
++	processdialog.py	\
+ 	volumestoolbar.py
+diff --git a/src/jarabe/journal/misc.py b/src/jarabe/journal/misc.py
+index 2d5fb28..fb9794b 100644
+--- a/src/jarabe/journal/misc.py
++++ b/src/jarabe/journal/misc.py
+@@ -340,3 +340,53 @@ def get_icon_color(metadata):
+         return XoColor(client.get_string('/desktop/sugar/user/color'))
+     else:
+         return XoColor(metadata['icon-color'])
++
++
++# BACKUP SUPPORT METHODS
++
++_NOT_AVAILABLE = _('Not available')
++
++
++def _get_xo_serial():
++    _OFW_TREE = '/ofw'
++    _PROC_TREE = '/proc/device-tree'
++    _SN = 'serial-number'
++
++    serial_no = None
++    if os.path.exists(os.path.join(_OFW_TREE, _SN)):
++        serial_no = _read_file(os.path.join(_OFW_TREE, _SN))
++    elif os.path.exists(os.path.join(_PROC_TREE, _SN)):
++        serial_no = _read_file(os.path.join(_PROC_TREE, _SN))
++
++    if serial_no is None:
++        serial_no = _NOT_AVAILABLE
++
++    # Remove the trailing binary character, else DBUS will crash.
++    return serial_no.rstrip('\x00')
++
++
++def _read_file(path):
++    if os.access(path, os.R_OK) == 0:
++        return None
++
++    fd = open(path, 'r')
++    value = fd.read()
++    fd.close()
++    if value:
++        value = value.strip('\n')
++        return value
++    else:
++        logging.debug('No information in file or directory: %s', path)
++        return None
++
++
++def _get_nick():
++    client = GConf.Client.get_default()
++    return client.get_string("/desktop/sugar/user/nick")
++
++
++def get_backup_identifier():
++    identifier = _get_xo_serial()
++    if identifier is _NOT_AVAILABLE:
++        identifier = _get_nick()
++    return identifier
+diff --git a/src/jarabe/journal/processdialog.py b/src/jarabe/journal/processdialog.py
+new file mode 100644
+index 0000000..157d541
+--- /dev/null
++++ b/src/jarabe/journal/processdialog.py
+@@ -0,0 +1,286 @@
++#!/usr/bin/env python
++# Copyright (C) 2010, Plan Ceibal <comunidad@plan.ceibal.edu.uy>
++# Copyright (C) 2010, Paraguay Educa <tecnologia@paraguayeduca.org>
++#
++# This program is free software: you can redistribute it and/or modify
++# it under the terms of the GNU General Public License as published by
++# the Free Software Foundation, either version 3 of the License, or
++# (at your option) any later version.
++#
++# This program is distributed in the hope that it will be useful,
++# but WITHOUT ANY WARRANTY; without even the implied warranty of
++# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++# GNU General Public License for more details.
++#
++# You should have received a copy of the GNU General Public License
++# along with this program.  If not, see <http://www.gnu.org/licenses/>.
++
++
++from gi.repository import GObject
++from gi.repository import Gtk
++from gi.repository import Gdk
++from gi.repository import GConf
++
++import logging
++
++from gettext import gettext as _
++from sugar3.graphics import style
++from sugar3.graphics.icon import Icon
++from sugar3.graphics.xocolor import XoColor
++
++from jarabe.journal import misc
++from jarabe.model import shell
++from jarabe.model import processmanagement
++from jarabe.model.session import get_session_manager
++
++
++class ProcessDialog(Gtk.Window):
++
++    __gtype_name__ = 'SugarProcessDialog'
++
++    def __init__(self, process_script='', process_params=[],
++                 restart_after=True):
++
++        #FIXME: Workaround limitations of Sugar core modal handling
++        shell_model = shell.get_model()
++        shell_model.set_zoom_level(shell_model.ZOOM_HOME)
++
++        Gtk.Window.__init__(self)
++
++        self._process_script = processmanagement.find_and_absolutize(
++            process_script)
++        self._process_params = process_params
++        self._restart_after = restart_after
++        self._start_message = _('Running')
++        self._finished_message = _('Finished')
++        self._prerequisite_message = _('Prerequisites were not met')
++
++        self.set_border_width(style.LINE_WIDTH)
++        width = Gdk.Screen.width()
++        height = Gdk.Screen.height()
++        self.set_size_request(width, height)
++        self.set_position(Gtk.WindowPosition.CENTER_ALWAYS)
++        self.set_decorated(False)
++        self.set_resizable(False)
++        self.set_modal(True)
++
++        self._colored_box = Gtk.EventBox()
++        self._colored_box.modify_bg(Gtk.StateType.NORMAL,
++                                    style.COLOR_WHITE.get_gdk_color())
++        self._colored_box.show()
++
++        self._vbox = Gtk.VBox()
++        self._vbox.set_spacing(style.DEFAULT_SPACING)
++        self._vbox.set_border_width(style.GRID_CELL_SIZE)
++
++        self._colored_box.add(self._vbox)
++        self.add(self._colored_box)
++
++        self._setup_information()
++        self._setup_progress_bar()
++        self._setup_options()
++
++        self._vbox.show()
++
++        self.connect("realize", self.__realize_cb)
++
++        self._process_management = processmanagement.ProcessManagement()
++        self._process_management.connect('process-management-running',
++                                         self._set_status_updated)
++        self._process_management.connect('process-management-started',
++                                         self._set_status_started)
++        self._process_management.connect('process-management-finished',
++                                         self._set_status_finished)
++        self._process_management.connect('process-management-failed',
++                                         self._set_status_failed)
++
++    def _setup_information(self):
++        client = GConf.Client.get_default()
++        color = XoColor(client.get_string('/desktop/sugar/user/color'))
++
++        self._icon = Icon(icon_name='activity-journal',
++                          pixel_size=style.XLARGE_ICON_SIZE,
++                          xo_color=color)
++        self._icon.show()
++
++        self._vbox.pack_start(self._icon, False, False, 0)
++
++        self._title = Gtk.Label()
++        self._title.modify_fg(Gtk.StateType.NORMAL,
++                              style.COLOR_BLACK.get_gdk_color())
++        self._title.set_use_markup(True)
++        self._title.set_justify(Gtk.Justification.CENTER)
++        self._title.show()
++
++        self._vbox.pack_start(self._title, False, False, 0)
++
++        self._message = Gtk.Label()
++        self._message.modify_fg(Gtk.StateType.NORMAL,
++                                style.COLOR_BLACK.get_gdk_color())
++        self._message.set_use_markup(True)
++        self._message.set_line_wrap(True)
++        self._message.set_justify(Gtk.Justification.CENTER)
++        self._message.show()
++
++        self._vbox.pack_start(self._message, True, True, 0)
++
++    def _setup_options(self):
++        hbox = Gtk.HBox(True, 3)
++        hbox.show()
++
++        icon = Icon(icon_name='dialog-ok')
++
++        self._start_button = Gtk.Button()
++        self._start_button.set_image(icon)
++        self._start_button.set_label(_('Start'))
++        self._start_button.connect('clicked', self.__start_cb)
++        self._start_button.show()
++
++        icon = Icon(icon_name='dialog-cancel')
++
++        self._close_button = Gtk.Button()
++        self._close_button.set_image(icon)
++        self._close_button.set_label(_('Close'))
++        self._close_button.connect('clicked', self.__close_cb)
++        self._close_button.show()
++
++        icon = Icon(icon_name='system-restart')
++
++        self._restart_button = Gtk.Button()
++        self._restart_button.set_image(icon)
++        self._restart_button.set_label(_('Restart'))
++        self._restart_button.connect('clicked', self.__restart_cb)
++        self._restart_button.hide()
++
++        hbox.add(self._start_button)
++        hbox.add(self._close_button)
++        hbox.add(self._restart_button)
++
++        halign = Gtk.Alignment(xalign=1, yalign=0, xscale=0, yscale=0)
++        halign.show()
++        halign.add(hbox)
++
++        self._vbox.pack_start(halign, False, False, 3)
++
++    def _setup_progress_bar(self):
++        alignment = Gtk.Alignment(xalign=0.5, yalign=0.5, xscale=0.5)
++        alignment.show()
++
++        self._progress_bar = Gtk.ProgressBar()
++        self._progress_bar.hide()
++
++        alignment.add(self._progress_bar)
++        self._vbox.pack_start(alignment, False, False, 0)
++
++    def __realize_cb(self, widget):
++        self.get_window().set_accept_focus(True)
++
++    def __close_cb(self, button):
++        self.destroy()
++
++    def __start_cb(self, button):
++        if self._check_prerequisites():
++            self._process_management.do_process(
++                [self._process_script] + self._process_params)
++        else:
++            self._set_status_failed(self,
++                                    error_message=self._prerequisite_message)
++
++    def __restart_cb(self, button):
++        session_manager = get_session_manager()
++        session_manager.logout()
++
++    def _check_prerequisites(self):
++        return True
++
++    def _set_status_started(self, model, data=None):
++        self._message.set_markup(self._start_message)
++
++        self._start_button.hide()
++        self._close_button.hide()
++
++        self._progress_bar.set_fraction(0.05)
++        self._progress_bar_handler = GObject.timeout_add(
++            1000, self.__progress_bar_handler_cb)
++        self._progress_bar.show()
++
++    def __progress_bar_handler_cb(self):
++        self._progress_bar.pulse()
++        return True
++
++    def _set_status_updated(self, model, data):
++        pass
++
++    def _set_status_finished(self, model, data=None):
++        self._message.set_markup(self._finished_message)
++
++        self._progress_bar.hide()
++        self._start_button.hide()
++
++        if self._restart_after:
++            self._restart_button.show()
++        else:
++            self._close_button.show()
++
++    def _set_status_failed(self, model=None, error_message=''):
++        self._message.set_markup(_('Failed: %s') % error_message)
++
++        self._progress_bar.hide()
++        self._start_button.show()
++        self._close_button.show()
++        self._restart_button.hide()
++
++        logging.error(error_message)
++
++
++class VolumeBackupDialog(ProcessDialog):
++
++    def __init__(self, volume_path):
++        ProcessDialog.__init__(self, 'journal-backup-volume',
++                               [volume_path, misc.get_backup_identifier()],
++                               restart_after=False)
++
++        self._resetup_information(volume_path)
++
++    def _resetup_information(self, volume_path):
++        self._start_message = (
++            _('Please wait, saving Journal content to %s\n\n')
++            % volume_path) + \
++            '<big><b>%s</b></big>' % _('Do not remove the storage device!')
++
++        self._finished_message = _('The Journal content has been saved.')
++
++        self._title.set_markup('<big><b>%s</b></big>' % _('Backup'))
++
++        self._message.set_markup(_('Journal content will be saved to %s') %
++                                 volume_path)
++
++
++class VolumeRestoreDialog(ProcessDialog):
++
++    def __init__(self, volume_path):
++        ProcessDialog.__init__(self, 'journal-restore-volume',
++                               [volume_path, misc.get_backup_identifier()])
++
++        self._resetup_information(volume_path)
++
++    def _resetup_information(self, volume_path):
++        self._start_message = (
++            _('Please wait, restoring Journal content from %s\n\n')
++            % volume_path) + \
++            '<big><b>%s</b></big>' % _('Do not remove the storage device!')
++
++        self._finished_message = _('The Journal content has been restored.')
++
++        self._title.set_markup('<big><b>%s</b></big>' % _('Restore'))
++
++        self._message.set_markup(
++            (_('Journal content will be restored from %s\n\n') % volume_path) +
++            '<big><b>%s</b></big>' %
++            _('Warning: Current Journal content will be deleted!'))
++
++        self._prerequisite_message = _(
++            ', please close all the running activities.')
++
++    def _check_prerequisites(self):
++        return len(shell.get_model()) <= 2
+diff --git a/src/jarabe/journal/volumestoolbar.py b/src/jarabe/journal/volumestoolbar.py
+index c1d7a88..cae785b 100644
+--- a/src/jarabe/journal/volumestoolbar.py
++++ b/src/jarabe/journal/volumestoolbar.py
+@@ -38,7 +38,7 @@ from sugar3 import env
+ 
+ from jarabe.journal import model
+ from jarabe.journal.misc import get_mount_icon_name
+-from jarabe.view.palettes import VolumePalette
++from jarabe.view.palettes import JournalVolumePalette
+ 
+ 
+ _JOURNAL_0_METADATA_DIR = '.olpc.store'
+@@ -326,7 +326,7 @@ class VolumeButton(BaseButton):
+         self.props.xo_color = color
+ 
+     def create_palette(self):
+-        palette = VolumePalette(self._mount)
++        palette = JournalVolumePalette(self._mount)
+         # palette.props.invoker = FrameWidgetInvoker(self)
+         # palette.set_group_id('frame')
+         return palette
+diff --git a/src/jarabe/model/Makefile.am b/src/jarabe/model/Makefile.am
+index 2670665..549c251 100644
+--- a/src/jarabe/model/Makefile.am
++++ b/src/jarabe/model/Makefile.am
+@@ -15,6 +15,7 @@ sugar_PYTHON =			\
+ 	neighborhood.py		\
+         network.py              \
+         notifications.py        \
++        processmanagement.py	\
+ 	shell.py		\
+ 	screen.py		\
+         session.py		\
+diff --git a/src/jarabe/model/processmanagement.py b/src/jarabe/model/processmanagement.py
+new file mode 100644
+index 0000000..89ea433
+--- /dev/null
++++ b/src/jarabe/model/processmanagement.py
+@@ -0,0 +1,111 @@
++# Copyright (C) 2010, Paraguay Educa <tecnologia@paraguayeduca.org>
++# Copyright (C) 2010, Plan Ceibal <comunidad@plan.ceibal.edu.uy>
++#
++# This program is free software; you can redistribute it and/or modify
++# it under the terms of the GNU General Public License as published by
++# the Free Software Foundation; either version 2 of the License, or
++# (at your option) any later version.
++#
++# This program is distributed in the hope that it will be useful,
++# but WITHOUT ANY WARRANTY; without even the implied warranty of
++# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++# GNU General Public License for more details.
++#
++# You should have received a copy of the GNU General Public License
++# along with this program; if not, write to the Free Software
++# Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
++
++from gi.repository import GObject
++from gi.repository import Gio
++from gi.repository import GLib
++
++import os
++
++from gettext import gettext as _
++
++BYTES_TO_READ = 100
++
++BACKUP_OF_CURRENT_SYSTEM_NOT_FOUND = 1
++
++SCRIPT_EXIT_CODES_AND_MESSAGES = {}
++SCRIPT_EXIT_CODES_AND_MESSAGES[BACKUP_OF_CURRENT_SYSTEM_NOT_FOUND] = \
++    _('No journal-backup has been taken for this XO. \n'
++      'Please ensure that you have a valid backup residing on the drive.')
++
++
++class ProcessManagement(GObject.GObject):
++
++    __gtype_name__ = 'ProcessManagement'
++
++    __gsignals__ = {
++        'process-management-running': (GObject.SignalFlags.RUN_FIRST, None,
++                                       ([str])),
++        'process-management-started': (GObject.SignalFlags.RUN_FIRST, None,
++                                       ([])),
++        'process-management-finished': (GObject.SignalFlags.RUN_FIRST, None,
++                                        ([])),
++        'process-management-failed': (GObject.SignalFlags.RUN_FIRST, None,
++                                      ([str]))
++    }
++
++    def __init__(self):
++        GObject.GObject.__init__(self)
++        self._running = False
++
++    def do_process(self, cmd):
++        self._run_cmd_async(cmd)
++
++    def _report_process_status(self, stream, result, user_data=None):
++        data = stream.read_finish(result)
++
++        if data != 0:
++            self.emit('process-management-running', data)
++            stream.read_bytes_async(BYTES_TO_READ,
++                                    GObject.PRIORITY_LOW, None,
++                                    self._report_process_status, None)
++
++    def _report_process_error(self, concat_err):
++        self.emit('process-management-failed', concat_err)
++
++    def _notify_process_status(self, stdout):
++        stdin_stream = Gio.UnixInputStream(fd=stdout, close_fd=True)
++        stdin_stream.read_bytes_async(BYTES_TO_READ,
++                                      GObject.PRIORITY_LOW, None,
++                                      self._report_process_status, None)
++
++    def _run_cmd_async(self, cmd):
++        if not self._running:
++            try:
++                pid, stdin, stdout, stderr = GLib.spawn_async(
++                    cmd, flags=GLib.SPAWN_DO_NOT_REAP_CHILD,
++                    standard_output=True, standard_error=True)
++                GObject.child_watch_add(pid, _handle_process_end,
++                                        (self, stderr))
++            except Exception:
++                self.emit('process-management-failed',
++                          _("Error - Call process: ") + str(cmd))
++            else:
++                self._notify_process_status(stdout)
++                self._running = True
++                self.emit('process-management-started')
++
++
++def _handle_process_end(pid, condition, (myself, stderr)):
++    myself._running = False
++
++    if os.WIFEXITED(condition) and os.WEXITSTATUS(condition) == 0:
++        myself.emit('process-management-finished')
++    else:
++        error_code_returned_from_script = os.WEXITSTATUS(condition)
++        error_message = SCRIPT_EXIT_CODES_AND_MESSAGES[
++            error_code_returned_from_script]
++        myself._report_process_error(error_message)
++
++
++def find_and_absolutize(script_name):
++    paths = os.environ['PATH'].split(':')
++    for path in paths:
++        looking_path = path + '/' + script_name
++        if os.path.isfile(looking_path):
++            return looking_path
++    return None
+diff --git a/src/jarabe/view/palettes.py b/src/jarabe/view/palettes.py
+index 3cd3f00..5a9b72d 100644
+--- a/src/jarabe/view/palettes.py
++++ b/src/jarabe/view/palettes.py
+@@ -1,4 +1,6 @@
+ # Copyright (C) 2008 One Laptop Per Child
++# Copyright (C) 2010, Plan Ceibal <comunidad@plan.ceibal.edu.uy>
++# Copyright (C) 2010, Paraguay Educa <tecnologia@paraguayeduca.org>
+ #
+ # This program is free software; you can redistribute it and/or modify
+ # it under the terms of the GNU General Public License as published by
+@@ -34,6 +36,8 @@ from sugar3.graphics import style
+ from sugar3.graphics.xocolor import XoColor
+ from sugar3.activity.i18n import pgettext
+ 
++from jarabe.journal.processdialog import VolumeBackupDialog
++from jarabe.journal.processdialog import VolumeRestoreDialog
+ from jarabe.model import shell
+ from jarabe.view.viewsource import setup_view_source
+ from jarabe.journal import misc
+@@ -291,3 +295,48 @@ class VolumePalette(Palette):
+         self._progress_bar.props.fraction = fraction
+         self._free_space_label.props.label = _('%(free_space)d MB Free') % \
+             {'free_space': free_space / (1024 * 1024)}
++
++
++class JournalVolumePalette(VolumePalette):
++
++    __gtype_name__ = 'JournalVolumePalette'
++
++    def __init__(self, mount):
++        VolumePalette.__init__(self, mount)
++
++        journal_separator = PaletteMenuItemSeparator()
++        journal_separator.show()
++
++        self.content_box.pack_start(journal_separator, True, True, 0)
++
++        icon = Icon(icon_name='transfer-from', icon_size=Gtk.IconSize.MENU)
++        icon.show()
++
++        menu_item_journal_restore = PaletteMenuItem(_('Restore Journal'))
++        menu_item_journal_restore.set_image(icon)
++        menu_item_journal_restore.connect('activate',
++                                          self.__journal_restore_activate_cb,
++                                          mount.get_root().get_path())
++        menu_item_journal_restore.show()
++
++        self.content_box.pack_start(menu_item_journal_restore, True, True, 0)
++
++        icon = Icon(icon_name='transfer-to', icon_size=Gtk.IconSize.MENU)
++        icon.show()
++
++        menu_item_journal_backup = PaletteMenuItem(_('Backup Journal'))
++        menu_item_journal_backup.set_image(icon)
++        menu_item_journal_backup.connect('activate',
++                                         self.__journal_backup_activate_cb,
++                                         mount.get_root().get_path())
++        menu_item_journal_backup.show()
++
++        self.content_box.pack_start(menu_item_journal_backup, True, True, 0)
++
++    def __journal_backup_activate_cb(self, menu_item, mount_path):
++        dialog = VolumeBackupDialog(mount_path)
++        dialog.show()
++
++    def __journal_restore_activate_cb(self, menu_item, mount_path):
++        dialog = VolumeRestoreDialog(mount_path)
++        dialog.show()
+-- 
+1.8.1.4
+

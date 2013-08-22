@@ -1,0 +1,106 @@
+From dc66ea0330d2cb6cbec4eedae3ac77a24b6f48e6 Mon Sep 17 00:00:00 2001
+From: Gonzalo Odiard <godiard@gmail.com>
+Date: Fri, 16 Aug 2013 11:05:13 -0300
+Subject: [PATCH 6/6] Add last updated information in the control Panel
+
+This is only a copy of the Dextrose code.
+Have a ugly hack to convert from seconds to a date,
+should be changed.
+
+Signed-off-by: Gonzalo Odiard <gonzalo@laptop.org>
+---
+ extensions/cpsection/aboutcomputer/model.py | 53 +++++++++++++++++++++++++++++
+ extensions/cpsection/aboutcomputer/view.py  | 16 +++++++++
+ 2 files changed, 69 insertions(+)
+
+diff --git a/extensions/cpsection/aboutcomputer/model.py b/extensions/cpsection/aboutcomputer/model.py
+index d265a71..3f4daff 100644
+--- a/extensions/cpsection/aboutcomputer/model.py
++++ b/extensions/cpsection/aboutcomputer/model.py
+@@ -265,3 +265,56 @@ def get_license():
+     except IOError:
+         license_text = _not_available
+     return license_text
++
++
++def get_last_updated_on_field():
++
++    # Get the number of UNIX seconds of the last update date.
++    last_update_unix_seconds = {}
++    try:
++        last_update_unix_seconds = int(
++            os.stat('/var/lib/rpm/Packages').st_mtime)
++    except:
++        msg_str = _('Information not available.')
++        _logger.exception(msg_str)
++        return msg_str
++
++    NO_UPDATE_MESSAGE = _('No update yet!')
++
++    # Check once again that 'last_update_unix_seconds' is not empty.
++    # You never know !
++    if not last_update_unix_seconds:
++        return NO_UPDATE_MESSAGE
++
++    if int(last_update_unix_seconds) == 1194004800:
++        return NO_UPDATE_MESSAGE
++
++    # If we reached here, we have the last-update-time, but it's in
++    # timestamp format.
++    # Using python-subprocess-module (no shell involved), to convert
++    # it into readable date-format; the hack being used (after
++    # removing '-u' option) is the first one mentioned at :
++    # http://www.commandlinefu.com/commands/view/3719/
++    #                                          convert-unix-timestamp-to-date
++    environment = os.environ.copy()
++    environment['PATH'] = '%s:/usr/sbin' % (environment['PATH'], )
++
++    last_update_readable_format = {}
++    try:
++        last_update_readable_format = \
++            subprocess.Popen(['date', '-d',
++                              '1970-01-01 + ' +
++                              str(last_update_unix_seconds) +
++                              ' seconds'],
++                             stdout=subprocess.PIPE,
++                             env=environment).stdout.readlines()[0]
++    except:
++        msg_str = _('Information not available.')
++        _logger.exception(msg_str)
++        return msg_str
++
++    if not last_update_readable_format:
++        return _('Information not available.')
++
++    # Everything should be fine (hopefully :-) )
++    return last_update_readable_format
+diff --git a/extensions/cpsection/aboutcomputer/view.py b/extensions/cpsection/aboutcomputer/view.py
+index c5b86da..b697594 100644
+--- a/extensions/cpsection/aboutcomputer/view.py
++++ b/extensions/cpsection/aboutcomputer/view.py
+@@ -172,6 +172,22 @@ class AboutComputer(SectionView):
+         box_software.pack_start(box_wireless_fw, False, True, 0)
+         box_wireless_fw.show()
+ 
++        box_last_update = Gtk.HBox(spacing=style.DEFAULT_SPACING)
++        label_last_update = Gtk.Label(label=_('Last Updated On:'))
++        label_last_update.set_alignment(1, 0)
++        label_last_update.modify_fg(Gtk.StateType.NORMAL,
++                                    style.COLOR_SELECTION_GREY.get_gdk_color())
++        box_last_update.pack_start(label_last_update, False, True, 0)
++        self._group.add_widget(label_last_update)
++        label_last_update.show()
++        last_update_date = self._model.get_last_updated_on_field()
++        label_last_update_date = Gtk.Label(label=last_update_date)
++        label_last_update_date.set_alignment(0, 0)
++        box_last_update.pack_start(label_last_update_date, False, True, 0)
++        label_last_update_date.show()
++        box_software.pack_start(box_last_update, False, True, 0)
++        box_last_update.show()
++
+         self._vbox.pack_start(box_software, False, True, 0)
+         box_software.show()
+ 
+-- 
+1.8.1.4
+

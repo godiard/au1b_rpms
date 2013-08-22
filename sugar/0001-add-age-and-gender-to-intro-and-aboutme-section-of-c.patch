@@ -1,0 +1,827 @@
+From 97edfcd2a519e4ab66d4ba63fdd0b6927cbc753e Mon Sep 17 00:00:00 2001
+From: Walter Bender <walter@sugarlabs.org>
+Date: Fri, 16 Aug 2013 14:39:26 -0400
+Subject: [PATCH] add age and gender to intro and aboutme section of cp
+
+---
+ extensions/cpsection/aboutme/model.py |  74 ++++++++++++++
+ extensions/cpsection/aboutme/view.py  | 184 +++++++++++++++++++++++++++++++++-
+ src/jarabe/intro/Makefile.am          |   2 +
+ src/jarabe/intro/__init__.py          |   2 +
+ src/jarabe/intro/agepicker.py         |  96 ++++++++++++++++++
+ src/jarabe/intro/colorpicker.py       |   7 +-
+ src/jarabe/intro/genderpicker.py      |  83 +++++++++++++++
+ src/jarabe/intro/window.py            | 114 +++++++++++++++++++--
+ 8 files changed, 547 insertions(+), 15 deletions(-)
+ create mode 100644 src/jarabe/intro/agepicker.py
+ create mode 100644 src/jarabe/intro/genderpicker.py
+
+diff --git a/extensions/cpsection/aboutme/model.py b/extensions/cpsection/aboutme/model.py
+index eff6473..bcabcb8 100644
+--- a/extensions/cpsection/aboutme/model.py
++++ b/extensions/cpsection/aboutme/model.py
+@@ -16,8 +16,12 @@
+ #
+ 
+ from gettext import gettext as _
++
+ from gi.repository import GConf
+ 
++from jarabe.intro.window import calculate_birth_timestamp, calculate_age
++from jarabe.intro.agepicker import AGES
++
+ 
+ _COLORS = {
+     'red': {'dark': '#b20008', 'medium': '#e6000a', 'light': '#ffadce'},
+@@ -53,6 +57,76 @@ def set_nick(nick):
+     return 1
+ 
+ 
++def get_gender():
++    client = GConf.Client.get_default()
++    return client.get_string('/desktop/sugar/user/gender')
++
++
++def print_gender():
++    print get_gender()
++
++
++def set_gender(gender):
++    """Set the gender.
++    gender : e.g. 'female'
++    """
++    if not gender or not gender in ['male', 'female']:
++        raise ValueError(_('Gender must be male or female.'))
++    client = GConf.Client.get_default()
++    client.set_string('/desktop/sugar/user/gender', gender)
++    return 1
++
++
++def get_age():
++    client = GConf.Client.get_default()
++    age = client.get_int('/desktop/sugar/user/age')
++    birth_timestamp = client.get_int('/desktop/sugar/user/birth_timestamp')
++
++    if birth_timestamp == 0:
++        if age in AGES:
++            return age
++        else:
++            return None
++
++    birth_age = calculate_age(birth_timestamp)
++
++    age = (AGES[-2] + AGES[-1]) / 2
++    if birth_age >= age:
++        return AGES[-1]
++    
++    for i in range(len(AGES) - 1):
++        age = (AGES[i] + AGES[i + 1]) / 2
++        if birth_age < age:
++            return AGES[i]
++
++    age = client.get_int('/desktop/sugar/user/age')
++    return None
++
++
++def print_age():
++    print get_age()
++
++
++def set_age(age):
++    """Set the age and an approximate birth timestamp
++    age: e.g. 8
++    birth_timestamp: time - age * #seconds per year
++    """
++    try:
++        i = int(age)
++    except ValueError, e:
++        i = None
++
++    if i is None or i < 1:
++        raise ValueError(_('Age must be a positive integer.'))
++
++    client = GConf.Client.get_default()
++    client.set_int('/desktop/sugar/user/age', age)
++    client.set_int('/desktop/sugar/user/birth_timestamp',
++                   calculate_birth_timestamp(age))
++    return 1
++
++
+ def get_color():
+     client = GConf.Client.get_default()
+     return client.get_string('/desktop/sugar/user/color')
+diff --git a/extensions/cpsection/aboutme/view.py b/extensions/cpsection/aboutme/view.py
+index 4cb9180..f9a9b92 100644
+--- a/extensions/cpsection/aboutme/view.py
++++ b/extensions/cpsection/aboutme/view.py
+@@ -25,9 +25,11 @@ from sugar3.graphics.icon import CanvasIcon
+ 
+ from jarabe.controlpanel.sectionview import SectionView
+ from jarabe.controlpanel.inlinealert import InlineAlert
++from jarabe.intro.agepicker import AGES, AGE_LABELS 
+ 
+ _STROKE_COLOR = 0
+ _FILL_COLOR = 1
++_NOCOLOR = XoColor('#010101,#ffffff')
+ 
+ 
+ def _get_next_stroke_color(color):
+@@ -120,7 +122,7 @@ class ColorPicker(CanvasIcon):
+ 
+     def __init__(self, picker):
+         CanvasIcon.__init__(self, icon_name='computer-xo',
+-                            pixel_size=style.XLARGE_ICON_SIZE)
++                            pixel_size=style.LARGE_ICON_SIZE)
+         self._picker = picker
+         self._color = None
+ 
+@@ -144,6 +146,94 @@ class ColorPicker(CanvasIcon):
+             self.emit('color-changed', self._color)
+ 
+ 
++class GenderPicker(CanvasIcon):
++    __gsignals__ = {
++        'gender-changed': (GObject.SignalFlags.RUN_FIRST,
++                           None,
++                           ([object])),
++    }
++
++    def __init__(self, color, gender):
++        CanvasIcon.__init__(self, icon_name='%s-6' % (gender),
++                            pixel_size=style.XLARGE_ICON_SIZE)
++        self._gender = gender
++        self._color = color
++
++        self.update_selected()
++
++        self.connect('button_press_event', self.__pressed_cb)
++
++    def update_color(self, color, gender):
++        self._color = color
++        self.update_selected(gender)
++
++    def update_selected(self, gender=None):
++        if self._gender == gender:
++            self.props.xo_color = self._color
++        else:
++            self.props.xo_color = _NOCOLOR
++
++    def __pressed_cb(self, button, event):
++        self.emit('gender-changed', self._gender)
++
++
++class AgePicker(Gtk.VBox):
++    __gsignals__ = {
++        'age-changed': (GObject.SignalFlags.RUN_FIRST,
++                        None,
++                        ([object])),
++    }
++
++    def __init__(self, color, gender, age):
++        Gtk.VBox.__init__(self)
++        self._color = color
++        self._gender = gender
++        self._age = age
++
++        if self._gender == None:
++            self._gender = 'male'
++
++        eventbox = Gtk.EventBox()
++        self._icon = CanvasIcon(icon_name='%s-%d' % (self._gender, self._age),
++                                pixel_size=style.LARGE_ICON_SIZE)
++        self._icon.show()
++        eventbox.connect('button-press-event', self.__pressed_cb)
++        eventbox.add(self._icon)
++        eventbox.show()
++
++        label = Gtk.Label()
++        label.set_text(AGE_LABELS[self._age])
++        label.show()
++        
++        self.pack_end(label, True, True, 0)
++        self.pack_end(eventbox, True, True, 0)
++
++        self.update_selected()
++
++    def update_color(self, color, age):
++        self._color = color
++        self.update_selected(age)
++
++    def update_selected(self, age=None):
++        if age in AGES:
++            age_index = AGES.index(age)
++        else:
++            age_index = None
++        
++        if age_index == self._age:
++            self._icon.props.xo_color = self._color
++        else:
++            self._icon.props.xo_color = _NOCOLOR
++        self._icon.show()
++
++    def update_gender(self, gender):
++        self._icon.set_icon_name('%s-%d' % (gender, self._age))
++        self._icon.show()
++
++    def __pressed_cb(self, button, event):
++        self.emit('age-changed', self._age)
++
++
+ class AboutMe(SectionView):
+ 
+     def __init__(self, model, alerts):
+@@ -154,6 +244,9 @@ class AboutMe(SectionView):
+         self._nick_sid = 0
+         self._color_valid = True
+         self._nick_valid = True
++        self._color = None
++        self._gender = None
++        self._age = None
+ 
+         self.set_border_width(style.DEFAULT_SPACING * 2)
+         self.set_spacing(style.DEFAULT_SPACING)
+@@ -173,14 +266,28 @@ class AboutMe(SectionView):
+         }
+ 
+         self._setup_color()
+-        initial_color = XoColor(self._model.get_color_xo())
+-        self._update_pickers(initial_color)
++        self._color = XoColor(self._model.get_color_xo())
++        self._update_pickers(self._color)
+ 
+         self._nick_box = Gtk.HBox(spacing=style.DEFAULT_SPACING)
+         self._nick_alert_box = Gtk.HBox(spacing=style.DEFAULT_SPACING)
+         self._nick_entry = None
+         self._nick_alert = None
+         self._setup_nick()
++
++        self._gender_label = Gtk.HBox(spacing=style.DEFAULT_SPACING)
++        self._gender_box = Gtk.HBox(spacing=style.DEFAULT_SPACING)
++        self._female_picker = GenderPicker(self._color, 'female')
++        self._male_picker = GenderPicker(self._color, 'male')
++        self._setup_gender()
++
++        self._age_label = Gtk.HBox(spacing=style.DEFAULT_SPACING)
++        self._age_box = Gtk.HBox(spacing=style.DEFAULT_SPACING)
++        self._age_pickers = []
++        for i in range(len(AGES)):
++            self._age_pickers.append(AgePicker(self._color, self._gender, i))
++        self._setup_age()
++
+         self.setup()
+ 
+     def _setup_nick(self):
+@@ -252,6 +359,54 @@ class AboutMe(SectionView):
+         self._color_alert_box.show()
+         self._center_in_panel.show()
+ 
++    def _setup_gender(self):
++        self._gender = self._model.get_gender()
++
++        label_gender = Gtk.Label(label=_('Select gender:'))
++        label_gender.modify_fg(Gtk.StateType.NORMAL,
++                               style.COLOR_SELECTION_GREY.get_gdk_color())
++        self._group.add_widget(label_gender)
++        self._gender_label.pack_start(label_gender, False, True, 0)
++        label_gender.show()
++
++        self._gender_box.pack_start(self._female_picker, False, True, 0)
++        self._female_picker.update_selected(self._gender)
++        self._female_picker.show()
++        self._gender_box.pack_start(self._male_picker, False, True, 0)
++        self._male_picker.update_selected(self._gender)
++        self._male_picker.show()
++
++        self._gender_center_in_panel = Gtk.Alignment.new(0.5, 0, 0, 0)
++        self._gender_center_in_panel.add(self._gender_box)
++        self.pack_start(self._gender_label, False, False, 0)
++        self.pack_start(self._gender_center_in_panel, False, False, 0)
++        self._gender_label.show()
++        self._gender_box.show()
++        self._gender_center_in_panel.show()
++
++    def _setup_age(self):
++        self._age = self._model.get_age()
++
++        label_age = Gtk.Label(label=_('Select age:'))
++        label_age.modify_fg(Gtk.StateType.NORMAL,
++                               style.COLOR_SELECTION_GREY.get_gdk_color())
++        self._group.add_widget(label_age)
++        self._age_label.pack_start(label_age, False, True, 0)
++        label_age.show()
++
++        for i in range(len(AGES)):
++            self._age_box.pack_start(self._age_pickers[i], False, True, 0)
++            self._age_pickers[i].update_selected(self._age)
++            self._age_pickers[i].show()
++
++        self._age_center_in_panel = Gtk.Alignment.new(0.5, 0, 0, 0)
++        self._age_center_in_panel.add(self._age_box)
++        self.pack_start(self._age_label, False, False, 0)
++        self.pack_start(self._age_center_in_panel, False, False, 0)
++        self._age_label.show()
++        self._age_box.show()
++        self._age_center_in_panel.show()
++
+     def setup(self):
+         self._nick_entry.set_text(self._model.get_nick())
+         self._color_valid = True
+@@ -261,9 +416,15 @@ class AboutMe(SectionView):
+         self._nick_entry.connect('changed', self.__nick_changed_cb)
+         for picker in self._pickers.values():
+             picker.connect('color-changed', self.__color_changed_cb)
++        self._female_picker.connect('gender-changed', self.__gender_changed_cb)
++        self._male_picker.connect('gender-changed', self.__gender_changed_cb)
++        for picker in self._age_pickers:
++            picker.connect('age-changed', self.__age_changed_cb)
+ 
+     def undo(self):
+         self._model.undo()
++        self._model.set_gender(self._gender)
++        self._model.set_age(self._age)
+         self._nick_alert.hide()
+         self._color_alert.hide()
+ 
+@@ -313,5 +474,22 @@ class AboutMe(SectionView):
+         self._color_alert.show()
+ 
+         self._update_pickers(color)
++        self._female_picker.update_color(color, self._gender)
++        self._male_picker.update_color(color, self._gender)
++        for i in range(len(AGES)):
++            self._age_pickers[i].update_color(color, self._age)
++        return False
++
++    def __gender_changed_cb(self, genderpicker, gender):
++        self._model.set_gender(gender)
++        self._female_picker.update_selected(gender)
++        self._male_picker.update_selected(gender)
++        for i in range(len(AGES)):
++            self._age_pickers[i].update_gender(gender)
++        return False
+ 
++    def __age_changed_cb(self, agepicker, age):
++        self._model.set_age(AGES[age])
++        for i in range(len(AGES)):
++            self._age_pickers[i].update_selected(AGES[age])
+         return False
+diff --git a/src/jarabe/intro/Makefile.am b/src/jarabe/intro/Makefile.am
+index 2ea7cea..18f5f51 100644
+--- a/src/jarabe/intro/Makefile.am
++++ b/src/jarabe/intro/Makefile.am
+@@ -1,5 +1,7 @@
+ sugardir = $(pythondir)/jarabe/intro
+ sugar_PYTHON = 		\
+ 	__init__.py	\
++	agepicker.py	\
+ 	colorpicker.py	\
++	genderpicker.py	\
+ 	window.py
+diff --git a/src/jarabe/intro/__init__.py b/src/jarabe/intro/__init__.py
+index d3aff6b..0045c74 100644
+--- a/src/jarabe/intro/__init__.py
++++ b/src/jarabe/intro/__init__.py
+@@ -3,6 +3,8 @@ import os
+ from sugar3 import env
+ from sugar3.profile import get_profile
+ 
++from jarabe.intro.window import create_profile
++
+ 
+ def check_profile():
+     profile = get_profile()
+diff --git a/src/jarabe/intro/agepicker.py b/src/jarabe/intro/agepicker.py
+new file mode 100644
+index 0000000..aafaf22
+--- /dev/null
++++ b/src/jarabe/intro/agepicker.py
+@@ -0,0 +1,96 @@
++# Copyright (C) 2007, Red Hat, Inc.
++#
++# This program is free software; you can redistribute it and/or modify
++# it under the terms of the GNU General Public License as published by
++# the Free Software Foundation; either version 2 of the License, or
++# (at your option) any later version.
++#
++# This program is distributed in the hope that it will be useful,
++# but WITHOUT ANY WARRANTY; without even the implied warranty of
++# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++# GNU General Public License for more details.
++#
++# You should have received a copy of the GNU General Public License
++# along with this program; if not, write to the Free Software
++# Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
++
++from gi.repository import Gtk
++from gi.repository import Gdk
++
++from gettext import gettext as _
++import logging
++
++from sugar3.graphics.icon import EventIcon
++from sugar3.graphics import style
++from sugar3.graphics.xocolor import XoColor
++
++AGES = [3, 5, 7, 9, 11, 12, 15, 25]
++AGE_LABELS = [_('0-3'), _('4-5'), _('6-7'), _('8-9'), _('10-11'), _('12'),
++              _('13-17'), _('Adult')]
++
++
++class AgePicker(Gtk.HBox):
++
++    def __init__(self, gender):
++        Gtk.HBox.__init__(self)
++        self._gender = gender
++        self._age = None
++        self._buttons = []
++        self._nocolor = XoColor('#010101,#ffffff')
++        self._color = XoColor()
++
++        alignment = Gtk.Alignment.new(0.5, 0.5, 0, 0)
++        self.pack_start(alignment, expand=True, fill=True, padding=0)
++
++        hbox = Gtk.HBox(spacing=style.DEFAULT_SPACING)
++        alignment.add(hbox)
++
++        if self._gender is None or self._gender == 'None':
++            self._gender = 'male'
++
++        for i in range(8):
++            vbox = Gtk.VBox()
++            eventbox = Gtk.EventBox()
++            self._buttons.append(
++                EventIcon(pixel_size=style.LARGE_ICON_SIZE,
++                          icon_name='%s-%d' % (self._gender, i)))
++            self._buttons[-1].show()
++            eventbox.connect('button-press-event',
++                             self._button_press_cb, i)
++            eventbox.add(self._buttons[-1])
++            eventbox.show()
++            label = Gtk.Label()
++            label.set_text(AGE_LABELS[i])
++            label.show()
++            vbox.pack_start(eventbox, True, True, 0)
++            vbox.pack_start(label, True, True, 0)
++            hbox.pack_start(vbox, True, True, 0)
++        self.show_all()
++
++    def _button_press_cb(self, widget, event, age):
++        if event.button == 1 and event.type == Gdk.EventType.BUTTON_PRESS:
++            logging.error('button press (%s) %s' % (self._age, age))
++            if self._age is not None:
++                self._buttons[self._age].xo_color = self._nocolor
++            self._set_age(age)
++            self._buttons[age].xo_color = self._color
++
++    def get_age(self):
++        if self._age is None:
++            return None
++        else:
++            return AGES[self._age]
++
++    def _set_age(self, age):
++        self._age = age
++
++    def update_color(self, color):
++        self._color = color
++        if self._age is not None:
++            self._buttons[self._age].xo_color = self._color
++
++    def update_gender(self, gender):
++        self._gender = gender
++        for i in range(8):
++            self._buttons[i].set_icon_name('%s-%d' % (self._gender, i))
++            self._buttons[i].show()
+diff --git a/src/jarabe/intro/colorpicker.py b/src/jarabe/intro/colorpicker.py
+index 0ec8c00..427600f 100644
+--- a/src/jarabe/intro/colorpicker.py
++++ b/src/jarabe/intro/colorpicker.py
+@@ -17,17 +17,19 @@
+ from gi.repository import Gtk
+ from gi.repository import Gdk
+ 
+-from sugar3.graphics.icon import Icon
++from sugar3.graphics.icon import EventIcon
+ from sugar3.graphics import style
+ from sugar3.graphics.xocolor import XoColor
+ 
++import logging
++
+ 
+ class ColorPicker(Gtk.EventBox):
+     def __init__(self):
+         Gtk.EventBox.__init__(self)
+         self._xo_color = None
+ 
+-        self._xo = Icon(pixel_size=style.XLARGE_ICON_SIZE,
++        self._xo = EventIcon(pixel_size=style.XLARGE_ICON_SIZE,
+                         icon_name='computer-xo')
+         self._set_random_colors()
+         self.connect('button-press-event', self._button_press_cb)
+@@ -35,6 +37,7 @@ class ColorPicker(Gtk.EventBox):
+ 
+     def _button_press_cb(self, widget, event):
+         if event.button == 1 and event.type == Gdk.EventType.BUTTON_PRESS:
++            logging.error('selecting random color')
+             self._set_random_colors()
+ 
+     def get_color(self):
+diff --git a/src/jarabe/intro/genderpicker.py b/src/jarabe/intro/genderpicker.py
+new file mode 100644
+index 0000000..0bb466f
+--- /dev/null
++++ b/src/jarabe/intro/genderpicker.py
+@@ -0,0 +1,83 @@
++# Copyright (C) 2007, Red Hat, Inc.
++#
++# This program is free software; you can redistribute it and/or modify
++# it under the terms of the GNU General Public License as published by
++# the Free Software Foundation; either version 2 of the License, or
++# (at your option) any later version.
++#
++# This program is distributed in the hope that it will be useful,
++# but WITHOUT ANY WARRANTY; without even the implied warranty of
++# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++# GNU General Public License for more details.
++#
++# You should have received a copy of the GNU General Public License
++# along with this program; if not, write to the Free Software
++# Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
++
++from gi.repository import Gtk
++from gi.repository import Gdk
++
++from sugar3.graphics.icon import EventIcon
++from sugar3.graphics import style
++from sugar3.graphics.xocolor import XoColor
++
++import logging
++
++
++class GenderPicker(Gtk.HBox):
++    def __init__(self):
++        Gtk.HBox.__init__(self)
++        self._gender = None
++        self._buttons = []
++        self._nocolor = XoColor('#010101,#ffffff')
++        self._color = XoColor()
++
++        alignment = Gtk.Alignment.new(0.5, 0.5, 0, 0)
++        self.pack_start(alignment, expand=True, fill=True, padding=0)
++
++        hbox = Gtk.HBox(spacing=style.DEFAULT_SPACING)
++        alignment.add(hbox)
++
++        eventbox = Gtk.EventBox()
++        self._buttons.append(EventIcon(pixel_size=style.XLARGE_ICON_SIZE,
++                                       icon_name='female-6'))
++        self._buttons[-1].show()
++        eventbox.connect('button-press-event', self._button_press_cb, 'female')
++        eventbox.add(self._buttons[-1])
++        eventbox.show()
++        hbox.pack_start(eventbox, False, False, 0)
++
++        eventbox = Gtk.EventBox()
++        self._buttons.append(EventIcon(pixel_size=style.XLARGE_ICON_SIZE,
++                                       icon_name='male-6'))
++        self._buttons[-1].show()
++        eventbox.connect('button-press-event', self._button_press_cb, 'male')
++        eventbox.add(self._buttons[-1])
++        eventbox.show()
++        hbox.pack_start(eventbox, False, False, 0)
++
++        self.show_all()
++
++    def _button_press_cb(self, widget, event, gender):
++        if event.button == 1 and event.type == Gdk.EventType.BUTTON_PRESS:
++            logging.error('genderpicker: %s' % (gender))
++            self._set_gender(gender)
++            if gender == 'female':
++                self._buttons[0].xo_color = self._color
++                self._buttons[1].xo_color = self._nocolor
++            else:
++                self._buttons[1].xo_color = self._color
++                self._buttons[0].xo_color = self._nocolor
++
++    def get_gender(self):
++        return self._gender
++
++    def _set_gender(self, gender):
++        self._gender = gender
++
++    def update_color(self, color):
++        self._color = color
++        if self._gender == 'female':
++            self._buttons[0].xo_color = self._color
++        elif self._gender == 'male':
++            self._buttons[1].xo_color = self._color
+diff --git a/src/jarabe/intro/window.py b/src/jarabe/intro/window.py
+index 83621c7..cde434c 100644
+--- a/src/jarabe/intro/window.py
++++ b/src/jarabe/intro/window.py
+@@ -19,12 +19,13 @@ import os.path
+ import logging
+ from gettext import gettext as _
+ import pwd
++import time
++import commands
+ 
+ from gi.repository import Gtk
+ from gi.repository import Gdk
+ from gi.repository import GObject
+ from gi.repository import GConf
+-from gi.repository import GLib
+ 
+ from sugar3 import env
+ from sugar3 import profile
+@@ -32,15 +33,40 @@ from sugar3.graphics import style
+ from sugar3.graphics.icon import Icon
+ from sugar3.graphics.xocolor import XoColor
+ 
++from jarabe.intro import genderpicker
++from jarabe.intro import agepicker
+ from jarabe.intro import colorpicker
+ 
++_SECONDS_PER_YEAR = 365 * 24 * 60 * 60
+ 
+-def create_profile(name, color=None):
++
++def calculate_birth_timestamp(age):
++    age_in_seconds = int(age * _SECONDS_PER_YEAR)
++    birth_timestamp = time.time() - age_in_seconds
++    return birth_timestamp
++
++
++def calculate_age(birth_timestamp):
++    age_in_seconds = time.time() - birth_timestamp
++    age = int(age_in_seconds / _SECONDS_PER_YEAR)
++    return age
++
++
++def create_profile(name, gender, age, color=None):
+     if not color:
+         color = XoColor()
+ 
+     client = GConf.Client.get_default()
+     client.set_string('/desktop/sugar/user/nick', name)
++
++    if gender is not None:
++        client.set_string('/desktop/sugar/user/gender', gender)
++
++    if age is not None:
++        client.set_int('/desktop/sugar/user/age', age)
++        client.set_int('/desktop/sugar/user/birth_timestamp',
++                       calculate_birth_timestamp(age))
++
+     client.set_string('/desktop/sugar/user/color', color.to_string())
+     client.suggest_sync()
+ 
+@@ -49,7 +75,6 @@ def create_profile(name, color=None):
+         return
+ 
+     # Generate keypair
+-    import commands
+     keypath = os.path.join(env.get_profile_path(), 'owner.key')
+     if os.path.exists(keypath):
+         os.rename(keypath, keypath + '.broken')
+@@ -126,6 +151,57 @@ class _NamePage(_Page):
+         self._entry.grab_focus()
+ 
+ 
++class _GenderPage(_Page):
++    def __init__(self):
++        _Page.__init__(self)
++
++        vbox = Gtk.VBox(spacing=style.DEFAULT_SPACING)
++        self.pack_start(vbox, expand=True, fill=False, padding=0)
++
++        self._label = Gtk.Label(label=_('Select gender:'))
++        vbox.pack_start(self._label, True, True, 0)
++
++        self._gp = genderpicker.GenderPicker()
++        vbox.pack_start(self._gp, True, True, 0)
++
++        self._gender = self._gp.get_gender()
++        self.set_valid(True)
++
++    def get_gender(self):
++        return self._gp.get_gender()
++
++    def update_color(self, color):
++        self._gp.update_color(color)
++
++
++class _AgePage(_Page):
++    def __init__(self, gender):
++        _Page.__init__(self)
++
++        vbox = Gtk.VBox(spacing=style.DEFAULT_SPACING)
++        self.pack_start(vbox, expand=True, fill=False, padding=0)
++
++        self._label = Gtk.Label(label=_('Select age:'))
++        vbox.pack_start(self._label, True, True, 0)
++
++        self._ap = agepicker.AgePicker(gender)
++        vbox.pack_start(self._ap, True, True, 0)
++
++        self._age = self._ap.get_age()
++        self.set_valid(True)
++
++    def update_gender(self, gender):
++        logging.error(gender)
++        self._ap.update_gender(gender)
++
++    def update_color(self, color):
++        logging.error('age: update color')
++        self._ap.update_color(color)
++
++    def get_age(self):
++        return self._ap.get_age()
++
++
+ class _ColorPage(_Page):
+     def __init__(self):
+         _Page.__init__(self)
+@@ -149,14 +225,17 @@ class _ColorPage(_Page):
+ class _IntroBox(Gtk.VBox):
+     __gsignals__ = {
+         'done': (GObject.SignalFlags.RUN_FIRST, None,
+-                 ([GObject.TYPE_PYOBJECT, GObject.TYPE_PYOBJECT])),
++                 ([GObject.TYPE_PYOBJECT, GObject.TYPE_PYOBJECT,
++                   GObject.TYPE_PYOBJECT, GObject.TYPE_PYOBJECT])),
+     }
+ 
+     PAGE_NAME = 0
+     PAGE_COLOR = 1
++    PAGE_GENDER = 2
++    PAGE_AGE = 3
+ 
+     PAGE_FIRST = PAGE_NAME
+-    PAGE_LAST = PAGE_COLOR
++    PAGE_LAST = PAGE_AGE
+ 
+     def __init__(self):
+         Gtk.VBox.__init__(self)
+@@ -164,6 +243,8 @@ class _IntroBox(Gtk.VBox):
+ 
+         self._page = self.PAGE_NAME
+         self._name_page = _NamePage(self)
++        self._gender_page = _GenderPage()
++        self._age_page = _AgePage(None)
+         self._color_page = _ColorPage()
+         self._current_page = None
+         self._next_button = None
+@@ -186,9 +267,20 @@ class _IntroBox(Gtk.VBox):
+ 
+         if self._page == self.PAGE_NAME:
+             self._current_page = self._name_page
++        elif self._page == self.PAGE_GENDER:
++            if self._color_page.get_color() is not None:
++                self._gender_page.update_color(self._color_page.get_color())
++            self._current_page = self._gender_page
++        elif self._page == self.PAGE_AGE:
++            if self._gender_page.get_gender() is not None:
++                self._age_page.update_gender(self._gender_page.get_gender())
++            if self._color_page.get_color() is not None:
++                self._age_page.update_color(self._color_page.get_color())
++            self._current_page = self._age_page
+         elif self._page == self.PAGE_COLOR:
+             self._current_page = self._color_page
+ 
++        logging.error(self._current_page)
+         self.pack_start(self._current_page, True, True, 0)
+ 
+         button_box = Gtk.HButtonBox()
+@@ -254,9 +346,11 @@ class _IntroBox(Gtk.VBox):
+ 
+     def done(self):
+         name = self._name_page.get_name()
++        gender = self._gender_page.get_gender()
++        age = self._age_page.get_age()
+         color = self._color_page.get_color()
+ 
+-        self.emit('done', name, color)
++        self.emit('done', name, gender, age, color)
+ 
+ 
+ class IntroWindow(Gtk.Window):
+@@ -279,12 +373,12 @@ class IntroWindow(Gtk.Window):
+         self._intro_box.show()
+         self.connect('key-press-event', self.__key_press_cb)
+ 
+-    def _done_cb(self, box, name, color):
++    def _done_cb(self, box, name, gender, age, color):
+         self.hide()
+-        GLib.idle_add(self._create_profile_cb, name, color)
++        GObject.idle_add(self._create_profile_cb, name, gender, age, color)
+ 
+-    def _create_profile_cb(self, name, color):
+-        create_profile(name, color)
++    def _create_profile_cb(self, name, gender, age, color):
++        create_profile(name, gender, age, color)
+         self.emit("done")
+ 
+         return False
+-- 
+1.8.1.4
+

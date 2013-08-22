@@ -1,0 +1,104 @@
+From 4be1c63eceff8c297c6e7cb5cb9b94da4ec83049 Mon Sep 17 00:00:00 2001
+From: Gonzalo Odiard <godiard@gmail.com>
+Date: Fri, 16 Aug 2013 09:05:04 -0300
+Subject: [PATCH 4/6] Add model information in the about computer control panel
+ section
+
+This patch is taken from Dextrose.
+The intention is not upstream this, just have the funtionality
+available in AU1B, without need more changes in the configuration,
+then use the same gconf keys.
+
+Signed-off-by: Gonzalo Odiard <gonzalo@laptop.org>
+---
+ extensions/cpsection/aboutcomputer/model.py | 40 +++++++++++++++++++++++++++++
+ extensions/cpsection/aboutcomputer/view.py  | 15 +++++++++++
+ 2 files changed, 55 insertions(+)
+
+diff --git a/extensions/cpsection/aboutcomputer/model.py b/extensions/cpsection/aboutcomputer/model.py
+index 1140e72..d265a71 100644
+--- a/extensions/cpsection/aboutcomputer/model.py
++++ b/extensions/cpsection/aboutcomputer/model.py
+@@ -24,6 +24,7 @@ import errno
+ import dbus
+ 
+ from jarabe import config
++from gi.repository import GConf
+ 
+ 
+ _NM_SERVICE = 'org.freedesktop.NetworkManager'
+@@ -96,6 +97,45 @@ def print_build_number():
+     print get_build_number()
+ 
+ 
++def get_model_laptop():
++    model = None
++    model_file_path = 'mfg-data/MN'
++    ofw_model_file_path = os.path.join(_OFW_TREE, model_file_path)
++    proc_model_file_path = os.path.join(_PROC_TREE, model_file_path)
++    logging.error('ofw_model_file_path %s', ofw_model_file_path)
++    logging.error('proc_model_file_path %s', proc_model_file_path)
++    if os.path.exists(ofw_model_file_path):
++        model = _read_file(ofw_model_file_path)
++    elif os.path.exists(proc_model_file_path):
++        model = _read_file(proc_model_file_path)
++    elif os.path.exists('/etc/ceibal-version'):
++        model = 'Magallanes'
++    elif os.path.exists('/etc/image_version'):
++        model = 'JumPc'
++
++    if model is None or not model:
++        model = _not_available
++
++    # Remove trailing binary-unprintable character
++    model = model.rstrip('\x00')
++
++    if _is_model_change_required():
++        model_converter = {'XO-4 HS Touch': 'XO-duo',
++                           'XO-4 Touch': 'XO-duo'}
++
++        if model in model_converter.keys():
++            model = model_converter[model]
++
++    return model
++
++
++def _is_model_change_required():
++    client = GConf.Client.get_default()
++
++    return client.get_bool(
++        '/desktop/sugar/extensions/aboutcomputer/change_model')
++
++
+ def _parse_firmware_number(firmware_no):
+     if firmware_no is None:
+         firmware_no = _not_available
+diff --git a/extensions/cpsection/aboutcomputer/view.py b/extensions/cpsection/aboutcomputer/view.py
+index afdaf78..f8a1323 100644
+--- a/extensions/cpsection/aboutcomputer/view.py
++++ b/extensions/cpsection/aboutcomputer/view.py
+@@ -66,6 +66,21 @@ class AboutComputer(SectionView):
+         vbox_identity.set_spacing(style.DEFAULT_SPACING)
+ 
+         box_identity = Gtk.HBox(spacing=style.DEFAULT_SPACING)
++        label_model = Gtk.Label(label=_('Model:'))
++        label_model.set_alignment(1, 0)
++        label_model.modify_fg(Gtk.StateType.NORMAL,
++                              style.COLOR_SELECTION_GREY.get_gdk_color())
++        box_identity.pack_start(label_model, False, True, 0)
++        self._group.add_widget(label_model)
++        label_model.show()
++        label_model_value = Gtk.Label(label=self._model.get_model_laptop())
++        label_model_value.set_alignment(0, 0)
++        box_identity.pack_start(label_model_value, False, True, 0)
++        label_model_value.show()
++        vbox_identity.pack_start(box_identity, False, True, 0)
++        box_identity.show()
++
++        box_identity = Gtk.HBox(spacing=style.DEFAULT_SPACING)
+         label_serial = Gtk.Label(label=_('Serial Number:'))
+         label_serial.set_alignment(1, 0)
+         label_serial.modify_fg(Gtk.StateType.NORMAL,
+-- 
+1.8.1.4
+

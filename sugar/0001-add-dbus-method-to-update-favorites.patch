@@ -1,0 +1,29 @@
+From 81493640bb577fd0d94eb5b4d8bad718c1a2ad53 Mon Sep 17 00:00:00 2001
+From: Walter Bender <walter@sugarlabs.org>
+Date: Fri, 16 Aug 2013 14:44:42 -0400
+Subject: [PATCH] add dbus method to update favorites
+
+---
+ src/jarabe/view/service.py | 6 ++++++
+ 1 file changed, 6 insertions(+)
+
+diff --git a/src/jarabe/view/service.py b/src/jarabe/view/service.py
+index 61b3d59..518e7f8 100644
+--- a/src/jarabe/view/service.py
++++ b/src/jarabe/view/service.py
+@@ -65,6 +65,12 @@ class UIService(dbus.service.Object):
+             return ''
+ 
+     @dbus.service.method(_DBUS_SHELL_IFACE,
++                         in_signature='ssb', out_signature='')
++    def SetBundleFavorite(self, bundle_id, version, favorite):
++        bundleregistry.get_registry().set_bundle_favorite(
++            bundle_id, version, favorite)
++
++    @dbus.service.method(_DBUS_SHELL_IFACE,
+                          in_signature='s', out_signature='b')
+     def ActivateActivity(self, activity_id):
+         """Switch to the window related to this activity_id and return a
+-- 
+1.8.1.4
+

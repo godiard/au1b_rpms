@@ -1,0 +1,115 @@
+From fe0e42bedd4cefc66186487469013de58ffacc58 Mon Sep 17 00:00:00 2001
+From: Gonzalo Odiard <godiard@gmail.com>
+Date: Thu, 15 Aug 2013 17:06:09 -0300
+Subject: [PATCH 3/6] Control Panel: Add aoption to launch the network manager
+ connection editor
+
+This is a last resort for cases we can't configure.
+Based on the Dextrose version.
+This version do not use sudo.
+
+Signed-off-by: Gonzalo Odiard <gonzalo@laptop.org>
+---
+ extensions/cpsection/network/model.py | 10 +++++++
+ extensions/cpsection/network/view.py  | 50 +++++++++++++++++++++++++++++++++++
+ 2 files changed, 60 insertions(+)
+
+diff --git a/extensions/cpsection/network/model.py b/extensions/cpsection/network/model.py
+index ae9e64d..76168e6 100644
+--- a/extensions/cpsection/network/model.py
++++ b/extensions/cpsection/network/model.py
+@@ -18,6 +18,8 @@
+ import logging
+ 
+ import dbus
++import subprocess
++
+ from gettext import gettext as _
+ from gi.repository import GConf
+ 
+@@ -154,3 +156,11 @@ def set_publish_information(value):
+     client = GConf.Client.get_default()
+     client.set_bool('/desktop/sugar/collaboration/publish_gadget', value)
+     return 0
++
++
++def launch_nm_connection_editor():
++    try:
++        subprocess.Popen(['nm-connection-editor --type=802-11-wireless'],
++                         shell=True)
++    except:
++        logging.exception('Error running nm-connection-editor')
+diff --git a/extensions/cpsection/network/view.py b/extensions/cpsection/network/view.py
+index 809cdfd..f409f5d 100644
+--- a/extensions/cpsection/network/view.py
++++ b/extensions/cpsection/network/view.py
+@@ -182,6 +182,8 @@ class Network(SectionView):
+ 
+         self._radio_alert_box = Gtk.HBox(spacing=style.DEFAULT_SPACING)
+         self._jabber_alert_box = Gtk.HBox(spacing=style.DEFAULT_SPACING)
++        self._nm_connection_editor_alert_box = Gtk.HBox(
++            spacing=style.DEFAULT_SPACING)
+ 
+         scrolled = Gtk.ScrolledWindow()
+         scrolled.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+@@ -312,9 +314,57 @@ class Network(SectionView):
+         separator_proxy.show()
+ 
+         self._add_proxy_section(workspace)
++        self.add_nm_connection_editor_launcher(workspace)
+ 
+         self.setup()
+ 
++    def add_nm_connection_editor_launcher(self, workspace):
++        separator_nm_connection_editor = Gtk.HSeparator()
++        workspace.pack_start(separator_nm_connection_editor, False, True, 0)
++        separator_nm_connection_editor.show()
++
++        label_nm_connection_editor = Gtk.Label(_('Advanced Network Settings'))
++        label_nm_connection_editor.set_alignment(0, 0)
++        workspace.pack_start(label_nm_connection_editor, False, True, 0)
++        label_nm_connection_editor.show()
++
++        box_nm_connection_editor = Gtk.VBox()
++        box_nm_connection_editor.set_border_width(style.DEFAULT_SPACING * 2)
++        box_nm_connection_editor.set_spacing(style.DEFAULT_SPACING)
++
++        info = Gtk.Label(_("For more specific network settings, use "
++                           "the NetworkManager Connection Editor."))
++
++        info.set_alignment(0, 0)
++        info.set_line_wrap(True)
++        box_nm_connection_editor.pack_start(info, False, True, 0)
++
++        self._nm_connection_editor_alert = InlineAlert()
++        self._nm_connection_editor_alert.props.msg = \
++            _('Please restart your computer for changes to take effect.')
++        self._nm_connection_editor_alert_box.pack_start(
++            self._nm_connection_editor_alert, False, True, 0)
++        box_nm_connection_editor.pack_end(
++            self._nm_connection_editor_alert_box, False, True, 0)
++        self._nm_connection_editor_alert_box.show()
++        self._nm_connection_editor_alert.show()
++
++        launch_button = Gtk.Button()
++        launch_button.set_alignment(0, 0)
++        launch_button.set_label(_('Launch'))
++        launch_button.connect('clicked', self.__launch_button_clicked_cb)
++        box_launch_button = Gtk.HBox()
++        box_launch_button.set_homogeneous(False)
++        box_launch_button.pack_start(launch_button, False, True, 0)
++        box_launch_button.show_all()
++
++        box_nm_connection_editor.pack_start(box_launch_button, False, True, 0)
++        workspace.pack_start(box_nm_connection_editor, False, True, 0)
++        box_nm_connection_editor.show_all()
++
++    def __launch_button_clicked_cb(self, launch_button):
++        self._model.launch_nm_connection_editor()
++
+     def _add_proxy_section(self, workspace):
+         label_proxy = Gtk.Label(_('Proxy'))
+         label_proxy.set_alignment(0, 0)
+-- 
+1.8.1.4
+
