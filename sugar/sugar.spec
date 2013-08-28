@@ -225,6 +225,7 @@ fi
 
 %{_bindir}/*
 %exclude %{_bindir}/sugar-emulator
+%config(noreplace) %{_datadir}/sugar/data/activities.defaults
 %dir %{_datadir}/sugar/extensions/cpsection/
 %exclude %{_datadir}/sugar/extensions/cpsection/[b-z]*
 %{_datadir}/sugar/extensions/cpsection/aboutcomputer
