@@ -1,0 +1,511 @@
+From 7dcadb447e012f29e9fccc893f19bcfeb0654257 Mon Sep 17 00:00:00 2001
+From: Gonzalo Odiard <godiard@gmail.com>
+Date: Thu, 29 Aug 2013 18:52:57 -0300
+Subject: [PATCH] WPA enterprise feature
+
+This is copied from the destrose patches, cleaned pep8 & pyflakes
+errors, updated to be applied in sugar 0.100, and fixed objectchooser
+use code.
+
+Not tested yet.
+
+Signed-off-by: Gonzalo Odiard <gonzalo@laptop.org>
+---
+ src/jarabe/desktop/keydialog.py    | 245 ++++++++++++++++++++++++++++++++++++-
+ src/jarabe/desktop/networkviews.py | 142 ++++++++++++++++++++-
+ src/jarabe/model/network.py        |   3 +
+ 3 files changed, 382 insertions(+), 8 deletions(-)
+
+diff --git a/src/jarabe/desktop/keydialog.py b/src/jarabe/desktop/keydialog.py
+index e68cd3c..6967875 100644
+--- a/src/jarabe/desktop/keydialog.py
++++ b/src/jarabe/desktop/keydialog.py
+@@ -23,11 +23,15 @@ from gi.repository import Gdk
+ 
+ import dbus
+ 
++import os
++import shutil
++
++from sugar3 import env
+ from sugar3.graphics.icon import Icon
+ from sugar3.graphics import style
+ 
+ from jarabe.model import network
+-
++from jarabe.journal.objectchooser import ObjectChooser
+ 
+ IW_AUTH_ALG_OPEN_SYSTEM = 'open'
+ IW_AUTH_ALG_SHARED_KEY = 'shared'
+@@ -36,6 +40,10 @@ WEP_PASSPHRASE = 1
+ WEP_HEX = 2
+ WEP_ASCII = 3
+ 
++SETTING_TYPE_STRING = 1
++SETTING_TYPE_LIST = 2
++SETTING_TYPE_CHOOSER = 3
++
+ 
+ def string_is_hex(key):
+     is_hex = True
+@@ -77,6 +85,220 @@ class CanceledKeyRequestError(dbus.DBusException):
+         self._dbus_error_name = network.NM_SETTINGS_IFACE + '.CanceledError'
+ 
+ 
++class NetworkParameters(Gtk.HBox):
++    def __init__(self, auth_param):
++        Gtk.HBox.__init__(self, homogeneous=True)
++        self._key = auth_param._key_name
++        self._label = Gtk.Label(_(auth_param._key_label))
++        self._key_type = auth_param._key_type
++        self._auth_param = auth_param
++
++        self.pack_start(self._label, True, True, 0)
++        self._label.show()
++
++        if self._is_entry():
++            self._entry = Gtk.Entry()
++            self.pack_start(self._entry, True, True, 0)
++            self._entry.show()
++        elif self._is_liststore():
++            self._option_store = Gtk.ListStore(str, str)
++            for option in auth_param._options:
++                self._option_store.append(option)
++
++            self._entry = auth_param._options[0][1]
++            self._option_combo = Gtk.ComboBox(model=self._option_store)
++            cell = Gtk.CellRendererText()
++            self._option_combo.pack_start(cell, True)
++            self._option_combo.add_attribute(cell, 'text', 0)
++            self._option_combo.set_active(0)
++            self._option_combo.connect('changed',
++                                       self._option_combo_changed_cb)
++            self.pack_start(self._option_combo, True, True, 0)
++            self.show()
++            self._option_combo.show()
++        elif self._is_chooser():
++            self._chooser_button = Gtk.Button(_('Choose..'))
++            self._chooser_button.connect('clicked', self._object_chooser_cb)
++            self.pack_start(self._chooser_button, True, True, 0)
++            self._chooser_button.show()
++            self._entry = ''
++
++    def _is_entry(self):
++        return (not self._is_chooser()) and \
++               (len(self._auth_param._options) == 0)
++
++    def _is_liststore(self):
++        return (not self._is_chooser()) and \
++               (len(self._auth_param._options) > 0)
++
++    def _is_chooser(self):
++        return self._key_type == SETTING_TYPE_CHOOSER
++
++    def _object_chooser_cb(self, chooser_button):
++        self._want_document = True
++        self._show_picker_cb()
++
++    def _show_picker_cb(self):
++        if not self._want_document:
++            return
++        chooser = ObjectChooser()
++
++        try:
++            result = chooser.run()
++            if result == Gtk.ResponseType.ACCEPT:
++                jobject = chooser.get_selected_object()
++                if jobject and jobject.file_path:
++                    file_basename = os.path.basename(
++                        jobject._metadata._properties['title'])
++                    self._chooser_button.set_label(file_basename)
++
++                    profile_path = env.get_profile_path()
++                    self._entry = os.path.join(profile_path, file_basename)
++
++                    # Remove (older) file, if it exists.
++                    if os.path.exists(self._entry):
++                        os.remove(self._entry)
++
++                    # Copy the file.
++                    shutil.copy2(jobject.file_path, self._entry)
++
++        finally:
++            chooser.destroy()
++            del chooser
++
++    def _option_combo_changed_cb(self, widget):
++        it = self._option_combo.get_active_iter()
++        (value, ) = self._option_store.get(it, 1)
++        self._entry = value
++
++    def _get_key(self):
++        return self._key
++
++    def _get_value(self):
++        if self._is_entry():
++            return self._entry.get_text()
++        elif self._is_liststore():
++            return self._entry
++        elif self._is_chooser():
++            if len(self._entry) > 0:
++                return dbus.ByteArray('file://' + self._entry + '\0')
++            else:
++                return self._entry
++
++
++class KeyValuesDialog(Gtk.Dialog):
++    def __init__(self, auth_lists, final_callback, settings):
++        # This must not be "modal", else the "chooser" widgets won't
++        # accept anything !!
++        Gtk.Dialog.__init__(self)
++        self.set_title(_('Wireless Parameters required'))
++
++        self._spacing_between_children_widgets = 5
++        self._auth_lists = auth_lists
++        self._final_callback = final_callback
++        self._settings = settings
++
++        label = Gtk.Label(_("Please enter parameters\n"))
++        self.vbox.set_spacing(self._spacing_between_children_widgets)
++        self.vbox.pack_start(label, True, True, 0)
++
++        self._auth_type_store = Gtk.ListStore(str, str)
++        for auth_list in self._auth_lists:
++            self._auth_type_store.append([auth_list._auth_label,
++                                          auth_list._auth_type])
++
++        self._auth_type_combo = Gtk.ComboBox(model=self._auth_type_store)
++        cell = Gtk.CellRendererText()
++        self._auth_type_combo.pack_start(cell, True)
++        self._auth_type_combo.add_attribute(cell, 'text', 0)
++        self._auth_type_combo.set_active(0)
++        self._auth_type_combo.connect('changed',
++                                      self._auth_type_combo_changed_cb)
++        self._auth_type_box = Gtk.HBox(homogeneous=True)
++        self._auth_label = Gtk.Label(_('Authentication'))
++        self._auth_type_box.pack_start(self._auth_label, True, True, 0)
++        self._auth_type_box.pack_start(self._auth_type_combo,
++                                       True, True, 0)
++        self.vbox.pack_start(self._auth_type_box, True, True, 0)
++        self._auth_label.show()
++        self._auth_type_combo.show()
++
++        button = Gtk.Button()
++        button.set_image(Icon(icon_name='dialog-cancel'))
++        button.set_label(_('Cancel'))
++        self.add_action_widget(button, Gtk.ResponseType.CANCEL)
++        button = Gtk.Button()
++        button.set_image(Icon(icon_name='dialog-ok'))
++        button.set_label(_('Ok'))
++        self.add_action_widget(button, Gtk.ResponseType.OK)
++        self.set_default_response(Gtk.ResponseType.OK)
++
++        self.connect('response', self._fetch_values)
++
++        auth_type = self._auth_lists[0]._auth_type
++        self._selected_auth_list = self._select_auth_list(auth_type)
++        self._add_key_value('eap', auth_type)
++        self._add_container_box()
++
++    def _auth_type_combo_changed_cb(self, widget):
++        it = self._auth_type_combo.get_active_iter()
++        (auth_type, ) = self._auth_type_store.get(it, 1)
++        self._selected_auth_list = self._select_auth_list(auth_type)
++        self._add_key_value('eap', auth_type)
++        self._reset()
++
++    def _select_auth_list(self, auth_type):
++        for auth_list in self._auth_lists:
++            if auth_list._params_list[0]._options[0][1] == auth_type:
++                return auth_list
++
++    def _populate_auth_params(self, auth_list):
++        for auth_param in auth_list._params_list[1:]:
++            obj = NetworkParameters(auth_param)
++            self._key_values_box.pack_start(obj, True, True, 0)
++            obj.show()
++
++    def _reset(self):
++        self.vbox.remove(self._key_values_box)
++        self._add_container_box()
++
++    def _add_container_box(self):
++        self._key_values_box = Gtk.VBox(
++            spacing=self._spacing_between_children_widgets)
++        self.vbox.pack_start(self._key_values_box, True, True, 0)
++        self._key_values_box.show()
++        self._populate_auth_params(self._selected_auth_list)
++
++    def _remove_all_params(self):
++        self._key_values_box.remove_all()
++
++    def _fetch_values(self, key_dialog, response_id):
++        if response_id == Gtk.ResponseType.OK:
++            for child in self._key_values_box.get_children():
++                key = child._get_key()
++                value = child._get_value()
++                self._add_key_value(key, value)
++
++            key_dialog.destroy()
++            self._final_callback(self._settings,
++                                 self._selected_auth_list)
++        else:
++            response = key_dialog.get_response_object()
++            response.set_error(CanceledKeyRequestError())
++            key_dialog.destroy()
++
++    def _add_key_value(self, key, value):
++        for auth_param in self._selected_auth_list._params_list:
++            if auth_param._key_name == key:
++                if (auth_param._key_type == SETTING_TYPE_STRING) or \
++                   (auth_param._key_type == SETTING_TYPE_CHOOSER):
++                    auth_param._value = value
++                elif auth_param._key_type == SETTING_TYPE_LIST:
++                    values = []
++                    values.append(value)
++                    auth_param._value = values
++
++
+ class KeyDialog(Gtk.Dialog):
+     def __init__(self, ssid, flags, wpa_flags, rsn_flags, dev_caps, response):
+         Gtk.Dialog.__init__(self, flags=Gtk.DialogFlags.MODAL)
+@@ -223,7 +445,7 @@ class WEPKeyDialog(KeyDialog):
+         self.set_response_sensitive(Gtk.ResponseType.OK, valid)
+ 
+ 
+-class WPAKeyDialog(KeyDialog):
++class WPAPersonalKeyDialog(KeyDialog):
+     def __init__(self, ssid, flags, wpa_flags, rsn_flags, dev_caps, response):
+         KeyDialog.__init__(self, ssid, flags, wpa_flags, rsn_flags,
+                            dev_caps, response)
+@@ -276,10 +498,15 @@ def create(ssid, flags, wpa_flags, rsn_flags, dev_caps, response):
+             rsn_flags == network.NM_802_11_AP_SEC_NONE:
+         key_dialog = WEPKeyDialog(ssid, flags, wpa_flags, rsn_flags,
+                                   dev_caps, response)
+-    else:
+-        key_dialog = WPAKeyDialog(ssid, flags, wpa_flags, rsn_flags,
+-                                  dev_caps, response)
+-
++    elif (wpa_flags & network.NM_802_11_AP_SEC_KEY_MGMT_PSK) or \
++            (rsn_flags & network.NM_802_11_AP_SEC_KEY_MGMT_PSK):
++        key_dialog = WPAPersonalKeyDialog(ssid, flags, wpa_flags, rsn_flags,
++                                          dev_caps, response)
++    elif (wpa_flags & network.NM_802_11_AP_SEC_KEY_MGMT_802_1X) or \
++            (rsn_flags & network.NM_802_11_AP_SEC_KEY_MGMT_802_1X):
++        # nothing. All details are asked for WPA/WPA2-Enterprise
++        # networks, before the conneection-activation is done.
++        return
+     key_dialog.connect('response', _key_dialog_response_cb)
+     key_dialog.show_all()
+     width, height = key_dialog.get_size()
+@@ -287,6 +514,12 @@ def create(ssid, flags, wpa_flags, rsn_flags, dev_caps, response):
+                     style.GRID_CELL_SIZE * 2)
+ 
+ 
++def get_key_values(key_list, final_callback, settings):
++    key_dialog = KeyValuesDialog(key_list, final_callback,
++                                 settings)
++    key_dialog.show_all()
++
++
+ def _key_dialog_response_cb(key_dialog, response_id):
+     response = key_dialog.get_response_object()
+     secrets = None
+diff --git a/src/jarabe/desktop/networkviews.py b/src/jarabe/desktop/networkviews.py
+index 990b8fe..9976c02 100644
+--- a/src/jarabe/desktop/networkviews.py
++++ b/src/jarabe/desktop/networkviews.py
+@@ -50,6 +50,92 @@ _OLPC_MESH_ICON_NAME = 'network-mesh'
+ 
+ _FILTERED_ALPHA = 0.33
+ 
++SETTING_TYPE_STRING = 1
++SETTING_TYPE_LIST = 2
++SETTING_TYPE_CHOOSER = 3
++
++
++class AuthenticationType:
++    def __init__(self, auth_label, auth_type, params_list):
++        self._auth_label = auth_label
++        self._auth_type = auth_type
++        self._params_list = params_list
++
++
++class AuthenticationParameter:
++    def __init__(self, key_name, key_label, key_type, options):
++        self._key_name = key_name
++        self._key_label = key_label
++        self._key_type = key_type
++        self._options = options
++        self._value = None
++
++
++AUTHENTICATION_LIST = [
++
++    AuthenticationType('TLS', 'tls', [
++        AuthenticationParameter('eap', 'Authentication', SETTING_TYPE_LIST,
++                                [['TLS', 'tls']]),
++        AuthenticationParameter('identity', 'Identity', SETTING_TYPE_STRING,
++                                []),
++        AuthenticationParameter('client-cert', 'User certificate',
++                                SETTING_TYPE_CHOOSER, []),
++        AuthenticationParameter('ca-cert', 'CA certificate',
++                                SETTING_TYPE_CHOOSER, []),
++        AuthenticationParameter('private-key', 'Private key',
++                                SETTING_TYPE_CHOOSER, []),
++        AuthenticationParameter('private-key-password',
++                                'Private Key password', SETTING_TYPE_STRING,
++                                [])]),
++
++    AuthenticationType('LEAP', 'leap', [
++        AuthenticationParameter('eap', 'Authentication', SETTING_TYPE_LIST,
++                                [['LEAP', 'leap']]),
++        AuthenticationParameter('identity', 'Username', SETTING_TYPE_STRING,
++                                []),
++        AuthenticationParameter('password', 'Password', SETTING_TYPE_STRING,
++                                [])]),
++
++    AuthenticationType('Tunnelled TLS', 'ttls', [
++        AuthenticationParameter('eap', 'Authentication', SETTING_TYPE_LIST,
++                                [['Tunnelled TLS', 'ttls']]),
++        AuthenticationParameter('anonymous-identity', 'Anonymous identity',
++                                SETTING_TYPE_STRING, []),
++        AuthenticationParameter('ca-cert', 'CA certificate',
++                                SETTING_TYPE_CHOOSER, []),
++        AuthenticationParameter('phase2-auth', 'Inner Authentication',
++                                SETTING_TYPE_STRING,
++                                [['PAP', 'pap'],
++                                ['MSCHAP', 'mschap'],
++                                ['MSCHAPv2', 'mschapv2'],
++                                ['CHAP', 'chap']]),
++        AuthenticationParameter('identity', 'Username', SETTING_TYPE_STRING,
++                                []),
++        AuthenticationParameter('password', 'Password', SETTING_TYPE_STRING,
++                                [])]),
++
++    AuthenticationType('Protected EAP (PEAP)', 'peap', [
++        AuthenticationParameter('eap', 'Authentication', SETTING_TYPE_LIST,
++                                [['Protected EAP (PEAP)', 'peap']]),
++        AuthenticationParameter('anonymous-identity', 'Anonymous identity',
++                                SETTING_TYPE_STRING, []),
++        AuthenticationParameter('ca-cert', 'CA certificate',
++                                SETTING_TYPE_CHOOSER, []),
++        AuthenticationParameter('phase1-peapver', 'PEAP version',
++                                SETTING_TYPE_STRING,
++                                [['Automatic', ''],
++                                ['Version 0', '0'],
++                                ['Version 1', '1']]),
++        AuthenticationParameter('phase2-auth', 'Inner Authentication',
++                                SETTING_TYPE_STRING,
++                                [['MSCHAPv2', 'mschapv2'],
++                                ['MD5', 'md5'],
++                                ['GTC', 'gtc']]),
++        AuthenticationParameter('identity', 'Username', SETTING_TYPE_STRING,
++                                []),
++        AuthenticationParameter('password', 'Password', SETTING_TYPE_STRING,
++                                [])])]
++
+ 
+ class WirelessNetworkView(EventPulsingIcon):
+     def __init__(self, initial_ap):
+@@ -322,7 +408,7 @@ class WirelessNetworkView(EventPulsingIcon):
+             group = self._add_ciphers_from_flags(self._rsn_flags, False)
+             wireless_security = WirelessSecurity()
+             wireless_security.key_mgmt = 'wpa-psk'
+-            wireless_security.proto = 'rsn'
++            wireless_security.proto = ['rsn']
+             wireless_security.pairwise = pairwise
+             wireless_security.group = group
+             return wireless_security
+@@ -334,7 +420,31 @@ class WirelessNetworkView(EventPulsingIcon):
+             group = self._add_ciphers_from_flags(self._wpa_flags, False)
+             wireless_security = WirelessSecurity()
+             wireless_security.key_mgmt = 'wpa-psk'
+-            wireless_security.proto = 'wpa'
++            wireless_security.proto = ['wpa']
++            wireless_security.pairwise = pairwise
++            wireless_security.group = group
++            return wireless_security
++
++        if (self._rsn_flags & network.NM_802_11_AP_SEC_KEY_MGMT_802_1X) and \
++                (self._device_caps & network.NM_WIFI_DEVICE_CAP_RSN):
++            # WPA2 Enterprise
++            pairwise = self._add_ciphers_from_flags(self._rsn_flags, True)
++            group = self._add_ciphers_from_flags(self._rsn_flags, False)
++            wireless_security = WirelessSecurity()
++            wireless_security.key_mgmt = 'wpa-eap'
++            wireless_security.proto = ['rsn']
++            wireless_security.pairwise = pairwise
++            wireless_security.group = group
++            return wireless_security
++
++        if (self._wpa_flags & network.NM_802_11_AP_SEC_KEY_MGMT_802_1X) and \
++                (self._device_caps & network.NM_WIFI_DEVICE_CAP_WPA):
++            # WPA Enterprise
++            pairwise = self._add_ciphers_from_flags(self._wpa_flags, True)
++            group = self._add_ciphers_from_flags(self._wpa_flags, False)
++            wireless_security = WirelessSecurity()
++            wireless_security.key_mgmt = 'wpa-eap'
++            wireless_security.proto = ['wpa']
+             wireless_security.pairwise = pairwise
+             wireless_security.group = group
+             return wireless_security
+@@ -374,6 +484,34 @@ class WirelessNetworkView(EventPulsingIcon):
+         if wireless_security is not None:
+             settings.wireless.security = '802-11-wireless-security'
+ 
++        # Take in the settings, if applicable.
++        if (wireless_security is not None) and \
++                ((wireless_security.key_mgmt == 'ieee8021x') or
++                 (wireless_security.key_mgmt == 'wpa-eap')):
++            keydialog.get_key_values(AUTHENTICATION_LIST,
++                                     self.__add_and_activate_connection,
++                                     settings)
++        else:
++            self.__add_and_activate_connection(settings)
++
++    def __add_and_activate_connection(self, settings,
++                                      additional_settings=None):
++        if additional_settings is not None:
++            key_value_dict = {}
++            auth_params_list = additional_settings._params_list
++
++            for auth_param in auth_params_list:
++                key = auth_param._key_name
++                value = auth_param._value
++                logging.debug('key == %s', key)
++                logging.debug('value == %s', value)
++                if len(value) > 0:
++                    key_value_dict[key] = value
++                else:
++                    logging.debug('Not setting empty value for key :%s', key)
++
++            settings.wpa_eap_setting = key_value_dict
++
+         network.add_and_activate_connection(self._device, settings,
+                                             self.get_first_ap().model)
+ 
+diff --git a/src/jarabe/model/network.py b/src/jarabe/model/network.py
+index b171125..44d78f2 100644
+--- a/src/jarabe/model/network.py
++++ b/src/jarabe/model/network.py
+@@ -516,6 +516,7 @@ class Settings(object):
+         self.connection = ConnectionSettings()
+         self.ip4_config = None
+         self.wireless_security = None
++        self.wpa_eap_setting = None
+ 
+         if wireless_cfg is not None:
+             self.wireless = wireless_cfg
+@@ -531,6 +532,8 @@ class Settings(object):
+                 self.wireless_security.get_dict()
+         if self.ip4_config is not None:
+             settings['ipv4'] = self.ip4_config.get_dict()
++        if self.wpa_eap_setting is not None:
++            settings['802-1x'] = self.wpa_eap_setting
+         return settings
+ 
+ 
+-- 
+1.8.1.4
+
