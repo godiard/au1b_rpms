@@ -17,7 +17,7 @@ Patch5:  0003-Control-Panel-Add-aoption-to-launch-the-network-mana.patch
 Patch6:  0004-Add-model-information-in-the-about-computer-control-.patch
 Patch7:  0005-Add-School-Fonts-license-in-control-panel.patch
 Patch8:  0006-Add-last-updated-information-in-the-control-Panel.patch
-
+Patch9:  0001-Add-5-GHz-frequency-channels-table-SL-4459.patch
 
 BuildRequires: gettext
 BuildRequires: GConf2-devel
@@ -165,6 +165,7 @@ This is the Sugar Web Account control panel
 %patch6 -p1 -b .model_info
 %patch7 -p1 -b .schools_fonts_info
 %patch8 -p1 -b .last_updated_info
+%patch9 -p1 -b .add_5ghz
 
 %build
 # need run it again to include new files
