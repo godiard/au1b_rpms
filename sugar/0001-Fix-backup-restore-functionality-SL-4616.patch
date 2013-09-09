@@ -1,0 +1,119 @@
+From 6ba93665d9591e001e09285c480c945e7c817ae7 Mon Sep 17 00:00:00 2001
+From: Gonzalo Odiard <godiard@gmail.com>
+Date: Mon, 9 Sep 2013 14:57:49 -0300
+Subject: [PATCH] Fix backup/restore functionality - SL #4616
+
+The GLib stuff is not working on F18. Use subprocess to run the
+backup/restore process.
+Right now, sugar run journal-backup-volume/restore, and they run tar
+in another process. IThis patch do not change that to minimize the changes
+and to keep the external backup/restore utilities to use in the command
+line, but may be is better run tar from sugar to simplify.
+
+Signed-off-by: Gonzalo Odiard <gonzalo@laptop.org>
+---
+ src/jarabe/model/processmanagement.py | 58 +++++++++++++----------------------
+ 1 file changed, 21 insertions(+), 37 deletions(-)
+
+diff --git a/src/jarabe/model/processmanagement.py b/src/jarabe/model/processmanagement.py
+index 89ea433..af04cee 100644
+--- a/src/jarabe/model/processmanagement.py
++++ b/src/jarabe/model/processmanagement.py
+@@ -16,15 +16,13 @@
+ # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+ 
+ from gi.repository import GObject
+-from gi.repository import Gio
+ from gi.repository import GLib
+ 
+ import os
++import subprocess
+ 
+ from gettext import gettext as _
+ 
+-BYTES_TO_READ = 100
+-
+ BACKUP_OF_CURRENT_SYSTEM_NOT_FOUND = 1
+ 
+ SCRIPT_EXIT_CODES_AND_MESSAGES = {}
+@@ -51,57 +49,43 @@ class ProcessManagement(GObject.GObject):
+     def __init__(self):
+         GObject.GObject.__init__(self)
+         self._running = False
++        self._process = None
+ 
+     def do_process(self, cmd):
+         self._run_cmd_async(cmd)
+ 
+-    def _report_process_status(self, stream, result, user_data=None):
+-        data = stream.read_finish(result)
+-
+-        if data != 0:
+-            self.emit('process-management-running', data)
+-            stream.read_bytes_async(BYTES_TO_READ,
+-                                    GObject.PRIORITY_LOW, None,
+-                                    self._report_process_status, None)
+-
+-    def _report_process_error(self, concat_err):
+-        self.emit('process-management-failed', concat_err)
++    def _check_process_output(self):
++        status = self._process.poll()
++        if status is None:
++            self.emit('process-management-running', '')
++            GLib.timeout_add_seconds(5, self._check_process_output)
++        else:
++            if status == 0:
++                self.emit('process-management-finished')
++            else:
++                if int(status) in SCRIPT_EXIT_CODES_AND_MESSAGES:
++                    self.emit('process-management-failed',
++                              SCRIPT_EXIT_CODES_AND_MESSAGES[status])
++                else:
++                    self.emit('process-management-failed', str(status))
+ 
+-    def _notify_process_status(self, stdout):
+-        stdin_stream = Gio.UnixInputStream(fd=stdout, close_fd=True)
+-        stdin_stream.read_bytes_async(BYTES_TO_READ,
+-                                      GObject.PRIORITY_LOW, None,
+-                                      self._report_process_status, None)
++    def _notify_process_status(self):
++        GObject.idle_add(self._check_process_output)
+ 
+     def _run_cmd_async(self, cmd):
+         if not self._running:
+             try:
+-                pid, stdin, stdout, stderr = GLib.spawn_async(
+-                    cmd, flags=GLib.SPAWN_DO_NOT_REAP_CHILD,
+-                    standard_output=True, standard_error=True)
+-                GObject.child_watch_add(pid, _handle_process_end,
+-                                        (self, stderr))
++                self._process = subprocess.Popen(cmd)
++
+             except Exception:
+                 self.emit('process-management-failed',
+                           _("Error - Call process: ") + str(cmd))
+             else:
+-                self._notify_process_status(stdout)
++                self._notify_process_status()
+                 self._running = True
+                 self.emit('process-management-started')
+ 
+ 
+-def _handle_process_end(pid, condition, (myself, stderr)):
+-    myself._running = False
+-
+-    if os.WIFEXITED(condition) and os.WEXITSTATUS(condition) == 0:
+-        myself.emit('process-management-finished')
+-    else:
+-        error_code_returned_from_script = os.WEXITSTATUS(condition)
+-        error_message = SCRIPT_EXIT_CODES_AND_MESSAGES[
+-            error_code_returned_from_script]
+-        myself._report_process_error(error_message)
+-
+-
+ def find_and_absolutize(script_name):
+     paths = os.environ['PATH'].split(':')
+     for path in paths:
+-- 
+1.8.1.4
+

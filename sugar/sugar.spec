@@ -3,7 +3,7 @@
 Summary: Constructionist learning platform
 Name:    sugar
 Version: 0.99.3.git20130906
-Release: 3.olpcau
+Release: 4.olpcau
 URL:     http://sugarlabs.org/
 License: GPLv2+
 Group:   User Interface/Desktops
@@ -19,6 +19,7 @@ Patch7:  0005-Add-School-Fonts-license-in-control-panel.patch
 Patch8:  0006-Add-last-updated-information-in-the-control-Panel.patch
 Patch9:  0001-Add-5-GHz-frequency-channels-table-SL-4459.patch
 Patch10: 0001-WPA-enterprise-feature.patch
+Patch11: 0001-Fix-backup-restore-functionality-SL-4616.patch
 
 BuildRequires: gettext
 BuildRequires: GConf2-devel
@@ -168,6 +169,7 @@ This is the Sugar Web Account control panel
 %patch8 -p1 -b .last_updated_info
 %patch9 -p1 -b .add_5ghz
 %patch10 -p1 -b .wpa
+%patch11 -p1 -b .fix_backup
 
 %build
 # need run it again to include new files
