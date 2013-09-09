@@ -2,10 +2,10 @@
 
 Summary: Sugar toolkit GTK+ 3
 Name:    sugar-toolkit-gtk3
-Version: 0.99.2.git20130820
-Release: 2
+Version: 0.99.3.git20130906
+Release: 1
 URL:     http://wiki.laptop.org/go/Sugar
-Source0: sugar-toolkit-gtk3-0.99.2.git20130820.tar
+Source0: sugar-toolkit-gtk3-0.99.3.git20130906.tar
 Source1: macros.sugar
 Patch0: 0001-Inhibit-suspend-while-a-activity-is-shared-OLPC-1036.patch
 License: LGPLv2+
@@ -54,6 +54,7 @@ the SugarExt-1.0 library through gobject-introspection.
 %patch0 -p1
 
 %build
+./autogen.sh
 %configure
 make %{?_smp_mflags} V=1
 

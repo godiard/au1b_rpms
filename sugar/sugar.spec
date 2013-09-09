@@ -2,12 +2,12 @@
 
 Summary: Constructionist learning platform
 Name:    sugar
-Version: 0.99.2.git20130816
+Version: 0.99.3.git20130906
 Release: 3.olpcau
 URL:     http://sugarlabs.org/
 License: GPLv2+
 Group:   User Interface/Desktops
-Source0: sugar-0.99.2.git20130816.tar
+Source0: sugar-0.99.3.git20130906.tar
 Patch0:  sugar-gnomekeyring.patch
 Patch1:  0001-add-age-and-gender-to-intro-and-aboutme-section-of-c.patch
 Patch2:  0001-add-dbus-method-to-update-favorites.patch
