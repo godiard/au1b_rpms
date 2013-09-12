@@ -8,6 +8,7 @@ URL:     http://wiki.laptop.org/go/Sugar
 Source0: sugar-toolkit-gtk3-0.99.3.git20130906.tar
 Source1: macros.sugar
 Patch0: 0001-Inhibit-suspend-while-a-activity-is-shared-OLPC-1036.patch
+Patch1: 0001-Add-maximim_instances-field-to-activity.info.patch
 License: LGPLv2+
 Group:   System Environment/Libraries
 
@@ -52,6 +53,7 @@ the SugarExt-1.0 library through gobject-introspection.
 %prep
 %setup -q
 %patch0 -p1
+%patch1 -p1
 
 %build
 ./autogen.sh
