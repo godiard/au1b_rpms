@@ -3,7 +3,7 @@
 Summary: Constructionist learning platform
 Name:    sugar
 Version: 0.99.3.git20130906
-Release: 5.olpcau
+Release: 6.olpcau
 URL:     http://sugarlabs.org/
 License: GPLv2+
 Group:   User Interface/Desktops
@@ -21,7 +21,8 @@ Patch9:  0001-Add-5-GHz-frequency-channels-table-SL-4459.patch
 Patch10: 0001-WPA-enterprise-feature.patch
 Patch11: 0001-Fix-backup-restore-functionality-SL-4616.patch
 Patch12: 0001-Add-maximum-open-activity-limit.patch
-Patch13: 0001-Add-maximum-open-instances.patch
+Patch13: 0001-Add-maximum-open-instances-v2.patch
+Patch14: 0001-Add-section-to-configure-hidden-networks.patch
 
 BuildRequires: gettext
 BuildRequires: GConf2-devel
@@ -174,6 +175,7 @@ This is the Sugar Web Account control panel
 %patch11 -p1 -b .fix_backup
 %patch12 -p1 -b .max_acts
 %patch13 -p1 -b .max_instances
+%patch14 -p1 -b .hidden_networks
 
 %build
 # need run it again to include new files

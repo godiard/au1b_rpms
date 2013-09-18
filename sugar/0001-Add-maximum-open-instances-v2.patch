@@ -1,7 +1,7 @@
-From da6d207ff6c724d64d00d71f5d2678fa143839d1 Mon Sep 17 00:00:00 2001
+From 0b84e318a35c7498c676988d0cbe6eb592623ceb Mon Sep 17 00:00:00 2001
 From: Gonzalo Odiard <godiard@gmail.com>
 Date: Thu, 12 Sep 2013 16:06:35 -0300
-Subject: [PATCH] Add maximum open instances
+Subject: [PATCH] Add maximum open instances - v2
 
 Some activities don't behave well if more than one instance is
 open. This patch sets a limit on the number open instances of an
@@ -12,10 +12,14 @@ open instances.
 
 NOTE: there is a patch to bundleactivity.py in the toolkit necessary
 for this patch to be used.
+
+v2: Show a simpler message is maximum_instances == 1
+
+Signed-off-by: Walter Bender <walter@sugarlabs.org>
 ---
  src/jarabe/journal/misc.py |  3 +++
- src/jarabe/model/shell.py  | 28 ++++++++++++++++++++++++++++
- 2 files changed, 31 insertions(+)
+ src/jarabe/model/shell.py  | 35 +++++++++++++++++++++++++++++++++++
+ 2 files changed, 38 insertions(+)
 
 diff --git a/src/jarabe/journal/misc.py b/src/jarabe/journal/misc.py
 index 1a1f370..fb696d2 100644
@@ -32,20 +36,21 @@ index 1a1f370..fb696d2 100644
                    bundle.get_bundle_id(), activity_id, object_id, uri)
  
 diff --git a/src/jarabe/model/shell.py b/src/jarabe/model/shell.py
-index a8fefae..10f60e1 100644
+index a8fefae..fc42d44 100644
 --- a/src/jarabe/model/shell.py
 +++ b/src/jarabe/model/shell.py
-@@ -43,6 +43,9 @@ _model = None
+@@ -43,6 +43,10 @@ _model = None
  _ACTIVITY_ALERT_TITLE = _('Activity launcher')
  _MAX_NUMBER_OF_ACTIVITIES_MESSAGE = _('The maximum number of open activities \
  has been reached. Please close an activity before launching a new one.')
-+_MAX_NUMBER_OF_INSTANCES_MESSAGE = _('The maximum number of open instances \
-+of %s has been reached. Please close an activity instance of %s before \
-+launching a new one.')
++_MORE_THAN_ONE_INSTANCE_MESSAGE = _('%s is already running. Please stop %s \
++before launching it again.')
++_MAX_NUMBER_OF_INSTANCES_MESSAGE = _('Too many instances of %s are running. \
++Please close one before launching a new one.')
  
  
  class Activity(GObject.GObject):
-@@ -264,6 +267,13 @@ class Activity(GObject.GObject):
+@@ -264,6 +268,13 @@ class Activity(GObject.GObject):
          else:
              return self._activity_info.get_path()
  
@@ -59,12 +64,11 @@ index a8fefae..10f60e1 100644
      def get_activity_name(self):
          """Returns the activity's bundle name"""
          if self._activity_info is None:
-@@ -656,6 +666,24 @@ class ShellModel(GObject.GObject):
+@@ -656,6 +667,30 @@ class ShellModel(GObject.GObject):
  
          self._update_zoom_level(window)
  
 +    def reached_maximum_number_of_open_instances(self, bundle):
-+        activities = self._get_activities_with_window()
 +        maximum_instances = bundle.get_maximum_instances()
 +        if maximum_instances is not None:
 +            bundle_id = bundle.get_bundle_id()
@@ -75,9 +79,16 @@ index a8fefae..10f60e1 100644
 +                    name = activity.get_activity_name()
 +                    count += 1
 +                if count > maximum_instances:
-+                    self.emit('open-activity-error', _ACTIVITY_ALERT_TITLE,
-+                              _MAX_NUMBER_OF_INSTANCES_MESSAGE %
-+                              (name, name))
++                    if maximum_instances == 1:
++                        self.emit('open-activity-error',
++                                  _ACTIVITY_ALERT_TITLE,
++                                  _MORE_THAN_ONE_INSTANCE_MESSAGE %
++                                  (name, name))
++                    else:
++                        self.emit('open-activity-error',
++                                  _ACTIVITY_ALERT_TITLE,
++                                  _MAX_NUMBER_OF_INSTANCES_MESSAGE %
++                                  (name))
 +                    return True
 +        return False
 +
