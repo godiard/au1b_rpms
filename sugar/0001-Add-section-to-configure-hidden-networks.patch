@@ -1,4 +1,4 @@
-From 0619491932aced8259c60af33614c86aeecabf66 Mon Sep 17 00:00:00 2001
+From 8b3bae6c3f55a62dca7934f0bbb63fcba3032282 Mon Sep 17 00:00:00 2001
 From: Gonzalo Odiard <godiard@gmail.com>
 Date: Thu, 12 Sep 2013 15:12:28 -0300
 Subject: [PATCH] Add section to configure hidden networks
@@ -7,12 +7,14 @@ This implementation, use network manager to create and
 connect the hidden network.
 No security is implemented right now.
 
+v2 - fixes separator in the ui
+
 Signed-off-by: Gonzalo Odiard <gonzalo@laptop.org>
 ---
  extensions/cpsection/network/model.py | 84 +++++++++++++++++++++++++++++++++++
- extensions/cpsection/network/view.py  | 42 ++++++++++++++++++
+ extensions/cpsection/network/view.py  | 44 ++++++++++++++++--
  src/jarabe/model/network.py           |  2 +
- 3 files changed, 128 insertions(+)
+ 3 files changed, 127 insertions(+), 3 deletions(-)
 
 diff --git a/extensions/cpsection/network/model.py b/extensions/cpsection/network/model.py
 index 76168e6..729dd18 100644
@@ -114,7 +116,7 @@ index 76168e6..729dd18 100644
 +        if ssid != '':
 +            self.create_and_connect_by_ssid(ssid)
 diff --git a/extensions/cpsection/network/view.py b/extensions/cpsection/network/view.py
-index f409f5d..83d41be 100644
+index f409f5d..70265f6 100644
 --- a/extensions/cpsection/network/view.py
 +++ b/extensions/cpsection/network/view.py
 @@ -26,6 +26,7 @@ from sugar3.graphics import style
@@ -125,18 +127,20 @@ index f409f5d..83d41be 100644
  
  CLASS = 'Network'
  ICON = 'module-network'
-@@ -313,6 +314,10 @@ class Network(SectionView):
-         workspace.pack_start(separator_proxy, False, False, 0)
-         separator_proxy.show()
+@@ -309,9 +310,9 @@ class Network(SectionView):
+         workspace.pack_start(box_mesh, False, True, 0)
+         box_mesh.show()
  
+-        separator_proxy = Gtk.HSeparator()
+-        workspace.pack_start(separator_proxy, False, False, 0)
+-        separator_proxy.show()
 +        self._hidden_conn_manager = HiddenNetworkManager()
 +        if self._hidden_conn_manager.enabled:
 +            self._add_hidden_ssid_section(workspace)
-+
+ 
          self._add_proxy_section(workspace)
          self.add_nm_connection_editor_launcher(workspace)
- 
-@@ -365,7 +370,40 @@ class Network(SectionView):
+@@ -365,7 +366,40 @@ class Network(SectionView):
      def __launch_button_clicked_cb(self, launch_button):
          self._model.launch_nm_connection_editor()
  
@@ -177,7 +181,7 @@ index f409f5d..83d41be 100644
          label_proxy = Gtk.Label(_('Proxy'))
          label_proxy.set_alignment(0, 0)
          workspace.pack_start(label_proxy, False, True, 0)
-@@ -520,6 +558,10 @@ class Network(SectionView):
+@@ -520,6 +554,10 @@ class Network(SectionView):
          for setting in self._proxy_settings.values():
              setting.apply()
  

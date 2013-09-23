@@ -3,7 +3,7 @@
 Summary: Constructionist learning platform
 Name:    sugar
 Version: 0.99.3.git20130906
-Release: 6.olpcau
+Release: 7.olpcau
 URL:     http://sugarlabs.org/
 License: GPLv2+
 Group:   User Interface/Desktops
@@ -23,6 +23,10 @@ Patch11: 0001-Fix-backup-restore-functionality-SL-4616.patch
 Patch12: 0001-Add-maximum-open-activity-limit.patch
 Patch13: 0001-Add-maximum-open-instances-v2.patch
 Patch14: 0001-Add-section-to-configure-hidden-networks.patch
+Patch15: 0001-Implement-configuration-of-proxy-using-profile-files.patch
+Patch16: 0002-Make-combo-in-proxy-selection-more-generic.patch
+Patch17: 0003-Ask-in-the-newtwork-panel-options-based-on-connectiv.patch
+Patch18: 0004-Connect-to-a-hidden-network-using-a-profile.patch
 
 BuildRequires: gettext
 BuildRequires: GConf2-devel
@@ -176,6 +180,10 @@ This is the Sugar Web Account control panel
 %patch12 -p1 -b .max_acts
 %patch13 -p1 -b .max_instances
 %patch14 -p1 -b .hidden_networks
+%patch15 -p1 -b .proxy_conf
+%patch16 -p1 -b .sett_combo
+%patch17 -p1 -b .hidden_profile
+%patch18 -p1 -b .hidden_profile2
 
 %build
 # need run it again to include new files
