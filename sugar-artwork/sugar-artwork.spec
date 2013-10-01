@@ -1,15 +1,17 @@
 Summary: Artwork for Sugar look-and-feel
 Name: sugar-artwork
-Version: 0.99.1.git20130820
-Release: 1.olpcau
+Version: 0.99.1
+Release: git20130926.1.olpcau
 URL: http://sugarlabs.org
 Group: User Interface/Desktops
 License: LGPLv2+
-Source0: sugar-artwork-0.99.1.git20130820.tar
-#Patch0: 0001-new-adhoc-icons.patch
-#Patch1: 0001-add-age-gender-icons.patch
-#Patch2: 0002-new-icons-for-age-gender.patch
+Source0: sugar-artwork-0.99.1.git20130926.tar
+Patch0: 0001-new-adhoc-icons.patch
+Patch1: 0001-add-age-gender-icons.patch
+Patch2: 0002-new-icons-for-age-gender.patch
+#Patch3: 0001-Add-files-needed-by-mock.patch
 
+BuildRequires: gnome-common
 BuildRequires: gtk2-devel
 BuildRequires: gtk3-devel
 BuildRequires: xorg-x11-apps
@@ -27,9 +29,9 @@ look and feel.
 
 %prep
 %setup -q
-#%patch0 -p1 -b .add_hoc
-#%patch1 -p1 -b .age_icons
-#%patch2 -p1 -b .add_icons_2
+%patch0 -p1 -b .add_hoc
+%patch1 -p1 -b .age_icons
+%patch2 -p1 -b .add_icons_2
 #%patch3 -p1
 
 %build
