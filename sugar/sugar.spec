@@ -2,12 +2,12 @@
 
 Summary: Constructionist learning platform
 Name:    sugar
-Version: 0.99.3.git20130906
-Release: 7.olpcau
+Version: 0.99.3
+Release: git20130925.7.olpcau
 URL:     http://sugarlabs.org/
 License: GPLv2+
 Group:   User Interface/Desktops
-Source0: sugar-0.99.3.git20130906.tar
+Source0: sugar-0.99.3.git20130925.tar
 Patch0:  sugar-gnomekeyring.patch
 Patch1:  0001-add-age-and-gender-to-intro-and-aboutme-section-of-c.patch
 Patch2:  0001-add-dbus-method-to-update-favorites.patch
@@ -18,7 +18,7 @@ Patch6:  0004-Add-model-information-in-the-about-computer-control-.patch
 Patch7:  0005-Add-School-Fonts-license-in-control-panel.patch
 Patch8:  0006-Add-last-updated-information-in-the-control-Panel.patch
 Patch9:  0001-Add-5-GHz-frequency-channels-table-SL-4459.patch
-Patch10: 0001-WPA-enterprise-feature.patch
+Patch10: 0010-WPA-enterprise-feature.patch
 Patch11: 0001-Fix-backup-restore-functionality-SL-4616.patch
 Patch12: 0001-Add-maximum-open-activity-limit.patch
 Patch13: 0001-Add-maximum-open-instances-v2.patch
@@ -27,6 +27,7 @@ Patch15: 0001-Implement-configuration-of-proxy-using-profile-files.patch
 Patch16: 0002-Make-combo-in-proxy-selection-more-generic.patch
 Patch17: 0003-Ask-in-the-newtwork-panel-options-based-on-connectiv.patch
 Patch18: 0004-Connect-to-a-hidden-network-using-a-profile.patch
+Patch19: 0001-Add-teacher-webservice.patch
 
 BuildRequires: gettext
 BuildRequires: GConf2-devel
@@ -161,6 +162,15 @@ Requires: %{name} = %{version}-%{release}
 %description cp-webaccount
 This is the Sugar Web Account control panel
 
+%package cp-webservices
+Summary: Sugar Web Services
+Group: User Interface/Desktops
+Requires: %{name} = %{version}-%{release}
+
+%description cp-webservices
+This is the Sugar Web Services. Right now, only Teacher.
+
+
 
 %prep
 %setup -q
@@ -184,6 +194,7 @@ This is the Sugar Web Account control panel
 %patch16 -p1 -b .sett_combo
 %patch17 -p1 -b .hidden_profile
 %patch18 -p1 -b .hidden_profile2
+%patch19 -p1 -b .teacher_webser
 
 %build
 # need run it again to include new files
@@ -249,6 +260,7 @@ fi
 %exclude %{_datadir}/sugar/extensions/cpsection/[b-z]*
 %{_datadir}/sugar/extensions/cpsection/aboutcomputer
 %{_datadir}/sugar/extensions/cpsection/aboutme
+%exclude %{_datadir}/sugar/extensions/webservice/teachershare
 
 %{_datadir}/mime/packages/sugar.xml
 
@@ -283,6 +295,9 @@ fi
 
 %files cp-webaccount
 %{_datadir}/sugar/extensions/cpsection/webaccount
+
+%files cp-webservices
+%{_datadir}/sugar/extensions/webservice/teachershare
 
 %changelog
 * Sat Aug 10 2013 Daniel Drake <dsd@laptop.org> 0.99.1-3

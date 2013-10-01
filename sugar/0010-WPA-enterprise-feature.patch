@@ -1,7 +1,7 @@
-From 7dcadb447e012f29e9fccc893f19bcfeb0654257 Mon Sep 17 00:00:00 2001
+From bc634c8f6c8d310220eeaf050d5bb94da7fc1b3b Mon Sep 17 00:00:00 2001
 From: Gonzalo Odiard <godiard@gmail.com>
-Date: Thu, 29 Aug 2013 18:52:57 -0300
-Subject: [PATCH] WPA enterprise feature
+Date: Wed, 25 Sep 2013 11:25:46 -0300
+Subject: [PATCH 10/18] WPA enterprise feature
 
 This is copied from the destrose patches, cleaned pep8 & pyflakes
 errors, updated to be applied in sugar 0.100, and fixed objectchooser
@@ -11,16 +11,16 @@ Not tested yet.
 
 Signed-off-by: Gonzalo Odiard <gonzalo@laptop.org>
 ---
- src/jarabe/desktop/keydialog.py    | 245 ++++++++++++++++++++++++++++++++++++-
+ src/jarabe/desktop/keydialog.py    | 246 ++++++++++++++++++++++++++++++++++++-
  src/jarabe/desktop/networkviews.py | 142 ++++++++++++++++++++-
  src/jarabe/model/network.py        |   3 +
- 3 files changed, 382 insertions(+), 8 deletions(-)
+ 3 files changed, 383 insertions(+), 8 deletions(-)
 
 diff --git a/src/jarabe/desktop/keydialog.py b/src/jarabe/desktop/keydialog.py
-index e68cd3c..6967875 100644
+index 5d40c67..20cf846 100644
 --- a/src/jarabe/desktop/keydialog.py
 +++ b/src/jarabe/desktop/keydialog.py
-@@ -23,11 +23,15 @@ from gi.repository import Gdk
+@@ -23,9 +23,14 @@ from gi.repository import Gdk
  
  import dbus
  
@@ -28,16 +28,15 @@ index e68cd3c..6967875 100644
 +import shutil
 +
 +from sugar3 import env
- from sugar3.graphics.icon import Icon
++from sugar3.graphics.icon import Icon
  from sugar3.graphics import style
- 
  from jarabe.model import network
 -
 +from jarabe.journal.objectchooser import ObjectChooser
  
  IW_AUTH_ALG_OPEN_SYSTEM = 'open'
  IW_AUTH_ALG_SHARED_KEY = 'shared'
-@@ -36,6 +40,10 @@ WEP_PASSPHRASE = 1
+@@ -34,6 +39,10 @@ WEP_PASSPHRASE = 1
  WEP_HEX = 2
  WEP_ASCII = 3
  
@@ -48,7 +47,7 @@ index e68cd3c..6967875 100644
  
  def string_is_hex(key):
      is_hex = True
-@@ -77,6 +85,220 @@ class CanceledKeyRequestError(dbus.DBusException):
+@@ -75,6 +84,220 @@ class CanceledKeyRequestError(dbus.DBusException):
          self._dbus_error_name = network.NM_SETTINGS_IFACE + '.CanceledError'
  
  
@@ -269,7 +268,7 @@ index e68cd3c..6967875 100644
  class KeyDialog(Gtk.Dialog):
      def __init__(self, ssid, flags, wpa_flags, rsn_flags, dev_caps, response):
          Gtk.Dialog.__init__(self, flags=Gtk.DialogFlags.MODAL)
-@@ -223,7 +445,7 @@ class WEPKeyDialog(KeyDialog):
+@@ -214,7 +437,7 @@ class WEPKeyDialog(KeyDialog):
          self.set_response_sensitive(Gtk.ResponseType.OK, valid)
  
  
@@ -278,7 +277,7 @@ index e68cd3c..6967875 100644
      def __init__(self, ssid, flags, wpa_flags, rsn_flags, dev_caps, response):
          KeyDialog.__init__(self, ssid, flags, wpa_flags, rsn_flags,
                             dev_caps, response)
-@@ -276,10 +498,15 @@ def create(ssid, flags, wpa_flags, rsn_flags, dev_caps, response):
+@@ -267,10 +490,15 @@ def create(ssid, flags, wpa_flags, rsn_flags, dev_caps, response):
              rsn_flags == network.NM_802_11_AP_SEC_NONE:
          key_dialog = WEPKeyDialog(ssid, flags, wpa_flags, rsn_flags,
                                    dev_caps, response)
@@ -298,7 +297,7 @@ index e68cd3c..6967875 100644
      key_dialog.connect('response', _key_dialog_response_cb)
      key_dialog.show_all()
      width, height = key_dialog.get_size()
-@@ -287,6 +514,12 @@ def create(ssid, flags, wpa_flags, rsn_flags, dev_caps, response):
+@@ -278,6 +506,12 @@ def create(ssid, flags, wpa_flags, rsn_flags, dev_caps, response):
                      style.GRID_CELL_SIZE * 2)
  
  

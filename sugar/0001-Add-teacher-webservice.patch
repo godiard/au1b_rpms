@@ -1,0 +1,1321 @@
+From e9181c5aa49fb279ec9020cef95733decc0ce492 Mon Sep 17 00:00:00 2001
+From: Gonzalo Odiard <godiard@gmail.com>
+Date: Wed, 25 Sep 2013 15:10:46 -0300
+Subject: [PATCH] Add teacher webservice
+
+Signed-off-by: Walter Bender <walter@sugarlabs.org>
+---
+ configure.ac                                       |   2 +
+ extensions/webservice/Makefile.am                  |   3 +-
+ extensions/webservice/teachershare/Makefile.am     |   7 +
+ extensions/webservice/teachershare/__init__.py     |   1 +
+ extensions/webservice/teachershare/account.py      | 450 +++++++++++++
+ .../teachershare/teachershare/Makefile.am          |   4 +
+ .../teachershare/teachershare/__init__.py          |   1 +
+ .../teachershare/teachershare/teachershare.py      |  21 +
+ extensions/webservice/teachershare/websocket.py    | 742 +++++++++++++++++++++
+ 9 files changed, 1230 insertions(+), 1 deletion(-)
+ create mode 100644 extensions/webservice/teachershare/Makefile.am
+ create mode 100644 extensions/webservice/teachershare/__init__.py
+ create mode 100644 extensions/webservice/teachershare/account.py
+ create mode 100644 extensions/webservice/teachershare/teachershare/Makefile.am
+ create mode 100644 extensions/webservice/teachershare/teachershare/__init__.py
+ create mode 100644 extensions/webservice/teachershare/teachershare/teachershare.py
+ create mode 100644 extensions/webservice/teachershare/websocket.py
+
+diff --git a/configure.ac b/configure.ac
+index b3d4d38..1d8e846 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -65,6 +65,8 @@ extensions/cpsection/webaccount/Makefile
+ extensions/deviceicon/Makefile
+ extensions/globalkey/Makefile
+ extensions/webservice/Makefile
++extensions/webservice/teachershare/Makefile
++extensions/webservice/teachershare/teachershare/Makefile
+ extensions/Makefile
+ Makefile
+ po/Makefile.in
+diff --git a/extensions/webservice/Makefile.am b/extensions/webservice/Makefile.am
+index c3dc35a..785e195 100644
+--- a/extensions/webservice/Makefile.am
++++ b/extensions/webservice/Makefile.am
+@@ -1,5 +1,6 @@
+-SUBDIRS = 
++SUBDIRS = teachershare
+ 
+ sugardir = $(pkgdatadir)/extensions/webservice
++
+ sugar_PYTHON = 		\
+ 	__init__.py
+diff --git a/extensions/webservice/teachershare/Makefile.am b/extensions/webservice/teachershare/Makefile.am
+new file mode 100644
+index 0000000..4869c58
+--- /dev/null
++++ b/extensions/webservice/teachershare/Makefile.am
+@@ -0,0 +1,7 @@
++SUBDIRS = teachershare
++
++sugardir = $(pkgdatadir)/extensions/webservice/teachershare
++
++sugar_PYTHON = __init__.py \
++	account.py \
++	websocket.py
+diff --git a/extensions/webservice/teachershare/__init__.py b/extensions/webservice/teachershare/__init__.py
+new file mode 100644
+index 0000000..d1a77a5
+--- /dev/null
++++ b/extensions/webservice/teachershare/__init__.py
+@@ -0,0 +1 @@
++# empty python __init_.py
+diff --git a/extensions/webservice/teachershare/account.py b/extensions/webservice/teachershare/account.py
+new file mode 100644
+index 0000000..ed22516
+--- /dev/null
++++ b/extensions/webservice/teachershare/account.py
+@@ -0,0 +1,450 @@
++# Copyright (c) 2013 Walter Bender <walter@sugarlabs.org>
++# Copyright (c) 2013 Martin Abente Lahaye <tch@sugarlabs.org>
++# Copyright (c) 2013 Gonzalo Odiard <gonzalo@sugarlabs.org>
++# Copyright (c) 2013 Agustin Zubiaga <aguz@sugarlabs.org>
++#
++# This program is free software; you can redistribute it and/or modify
++# it under the terms of the GNU General Public License as published by
++# the Free Software Foundation; either version 2 of the License, or
++# (at your option) any later version.
++#
++# This program is distributed in the hope that it will be useful,
++# but WITHOUT ANY WARRANTY; without even the implied warranty of
++# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++# GNU General Public License for more details.
++#
++# You should have received a copy of the GNU General Public License
++# along with this program; if not, write to the Free Software
++# Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
++
++from gettext import gettext as _
++
++import logging
++import base64
++import os
++import json
++import telepathy
++import dbus
++import websocket
++import tempfile
++from zipfile import ZipFile
++from threading import Thread
++
++from gi.repository import Gtk
++from gi.repository import GObject
++
++from sugar3.datastore import datastore
++from sugar3.graphics.alert import NotifyAlert
++from sugar3.graphics.icon import Icon
++from sugar3.graphics.menuitem import MenuItem
++from sugar3.presence import presenceservice
++from sugar3 import profile
++
++from jarabe.journal import journalwindow
++from jarabe.journal import model
++from jarabe.webservice import account
++from jarabe.model import neighborhood
++
++ACCOUNT_NAME = _('Teacher')
++ACCOUNT_ICON = 'female-7'
++TARGET = 'org.sugarlabs.JournalShare'
++JOURNAL_STREAM_SERVICE = 'journal-activity-http'
++CHUNK_SIZE = 2048
++
++
++class Account(account.Account):
++
++    def __init__(self):
++        self._shared_journal_entry = None
++        self._model = neighborhood.get_model()
++        self.unused_download_tubes = set()
++
++    def get_description(self):
++        return ACCOUNT_NAME
++
++    def get_token_state(self):
++        return self.STATE_VALID
++
++    def get_shared_journal_entry(self):
++        if self._shared_journal_entry is None:
++            self._shared_journal_entry = _SharedJournalEntry(self)
++        return self._shared_journal_entry
++
++
++class _SharedJournalEntry(account.SharedJournalEntry):
++    __gsignals__ = {
++        'transfer-state-changed': (GObject.SignalFlags.RUN_FIRST, None,
++                                   ([str])),
++    }
++
++    def __init__(self, webaccount):
++        self._account = webaccount
++        self._alert = None
++
++    def get_share_menu(self, get_uid_list):
++        menu = _ShareMenu(self._account, get_uid_list, True)
++        self._connect_transfer_signals(menu)
++        return menu
++
++    def get_refresh_menu(self):
++        menu = _RefreshMenu(self._account, False)
++        self._connect_transfer_signals(menu)
++        return menu
++
++    def _connect_transfer_signals(self, transfer_widget):
++        transfer_widget.connect('transfer-state-changed',
++                                self.__display_alert_cb)
++
++    def __display_alert_cb(self, widget, message):
++        if self._alert is None:
++            self._alert = NotifyAlert()
++            self._alert.props.title = ACCOUNT_NAME
++            self._alert.connect('response', self.__alert_response_cb)
++            journalwindow.get_journal_window().add_alert(self._alert)
++            self._alert.show()
++        self._alert.props.msg = message
++
++    def __alert_response_cb(self, alert, response_id):
++        journalwindow.get_journal_window().remove_alert(alert)
++        self._alert = None
++
++
++class _RefreshMenu(MenuItem):
++    __gsignals__ = {
++        'transfer-state-changed': (GObject.SignalFlags.RUN_FIRST, None,
++                                   ([str])),
++        'comments-changed': (GObject.SignalFlags.RUN_FIRST, None, ([str]))
++    }
++
++    def __init__(self, webaccount, is_active):
++        MenuItem.__init__(self, ACCOUNT_NAME)
++
++        self._account = webaccount
++        self._is_active = is_active
++
++        self.set_image(Icon(icon_name=ACCOUNT_ICON,
++                            icon_size=Gtk.IconSize.MENU))
++        self.show()
++
++        self.set_sensitive(False)
++
++        # TODO: grab comments back from the teacher
++        # self.connect('activate', self.__refresh_menu_cb)
++
++    def set_metadata(self, metadata):
++        self._metadata = metadata
++
++
++class _ShareMenu(MenuItem):
++    __gsignals__ = {
++        'joined': (GObject.SignalFlags.RUN_FIRST, None, ([])),
++        'transfer-state-changed': (GObject.SignalFlags.RUN_FIRST, None,
++                                   ([str])),
++        'comments-changed': (GObject.SignalFlags.RUN_FIRST, None, ([str]))
++    }
++
++    def __init__(self, webaccount, get_uid_list, is_active):
++        MenuItem.__init__(self, ACCOUNT_NAME)
++
++        self._account = webaccount
++        self._activity_id = None
++        self._shared_activity = None
++
++        self.set_image(Icon(icon_name=ACCOUNT_ICON,
++                            icon_size=Gtk.IconSize.MENU))
++        self.show()
++
++        self.set_sensitive(self._get_shared_activity_model())
++
++        self._get_uid_list = get_uid_list
++
++        # In this callback join the Journal Share activity
++        self.connect('activate', self.__share_menu_cb)
++
++    def _get_shared_activity_model(self):
++        for activity_model in self._account._model.get_activities():
++            logging.debug(activity_model.bundle.get_bundle_id())
++            if activity_model.bundle.get_bundle_id() == TARGET:
++                self._activity_id = activity_model.activity_id
++                logging.debug('Found %s in the neighborhood' %
++                              (TARGET))
++                return True
++        return False
++
++    def _get_metadata(self):
++        return model.get(self._get_uid_list()[0])
++
++    def __share_menu_cb(self, menu_item):
++        pservice = presenceservice.get_instance()
++        if self._activity_id is not None:
++            self._shared_activity = pservice.get_activity(self._activity_id,
++                                                          warn_if_none=False)
++        else:
++            logging.error('Cannot get activity from pservice.')
++            self.emit('transfer-state-changed',
++                      _('Cannot join Journal Share activity'))
++            return
++
++        # We set up sharing in the same way as
++        # sugar-toolkit-gtk3/src/sugar3/activity/activity.py
++
++        # There's already an instance on the mesh, so join it
++        logging.debug('*** Act %s joining existing mesh instance %r',
++                      self._activity_id, self._shared_activity)
++
++        self._join_id = self._shared_activity.connect('joined',
++                                                      self.__joined_cb)
++        self._shared_activity.join()
++
++    def __joined_cb(self, activity, success, err):
++        """Callback when join has finished"""
++        self._shared_activity.disconnect(self._join_id)
++        self._join_id = None
++        if not success:
++            logging.error('Failed to join activity: %s', err)
++            self.emit('transfer-state-changed',
++                      _('Cannot join Journal Share activity'))
++            return
++
++        # Once we have joined the activity, we mimic
++        # JournalShare activity.py
++        self._watch_for_tubes()
++        GObject.idle_add(self._get_view_information)
++
++    def _watch_for_tubes(self):
++        """Watch for new tubes."""
++        tubes_chan = self._shared_activity.telepathy_tubes_chan
++        logging.debug(tubes_chan)
++        tubes_chan[telepathy.CHANNEL_TYPE_TUBES].connect_to_signal(
++            'NewTube', self.__new_tube_cb)
++        tubes_chan[telepathy.CHANNEL_TYPE_TUBES].ListTubes(
++            reply_handler=self.__list_tubes_reply_cb,
++            error_handler=self.__list_tubes_error_cb)
++
++    def __new_tube_cb(self, tube_id, initiator, tube_type, service, params,
++                      state):
++        """Callback when a new tube becomes available."""
++        logging.debug('New tube: ID=%d initator=%d type=%d service=%s '
++                      'params=%r state=%d', tube_id, initiator, tube_type,
++                      service, params, state)
++
++        if service == JOURNAL_STREAM_SERVICE:
++            self._account.unused_download_tubes.add(tube_id)
++            GObject.idle_add(self._get_view_information)
++
++    def __list_tubes_reply_cb(self, tubes):
++        """Callback when new tubes are available."""
++        for tube_info in tubes:
++            self.__new_tube_cb(*tube_info)
++
++    def __list_tubes_error_cb(self, e):
++        """Handle ListTubes error by logging."""
++        logging.error('ListTubes() failed: %s', e)
++        self.emit('transfer-state-changed',
++                  _('Cannot upload to Journal Share activity'))
++
++    def _get_view_information(self):
++        # Pick an arbitrary tube we can try to connect to the server
++        try:
++            tube_id = self._account.unused_download_tubes.pop()
++        except (ValueError, KeyError), e:
++            logging.error('No tubes to connect from right now: %s',
++                          e)
++            self.emit('transfer-state-changed',
++                  _('Cannot upload to Journal Share activity'))
++            return False
++
++        GObject.idle_add(self._set_view_url, tube_id)
++        return False
++
++    def _set_view_url(self, tube_id):
++        chan = self._shared_activity.telepathy_tubes_chan
++        iface = chan[telepathy.CHANNEL_TYPE_TUBES]
++        addr = iface.AcceptStreamTube(
++            tube_id,
++            telepathy.SOCKET_ADDRESS_TYPE_IPV4,
++            telepathy.SOCKET_ACCESS_CONTROL_LOCALHOST, 0,
++            utf8_strings=True)
++        logging.debug('Accepted stream tube: listening address is %r', addr)
++        # SOCKET_ADDRESS_TYPE_IPV4 is defined to have addresses of type '(sq)'
++        assert isinstance(addr, dbus.Struct)
++        assert len(addr) == 2
++        assert isinstance(addr[0], str)
++        assert isinstance(addr[1], (int, long))
++        assert addr[1] > 0 and addr[1] < 65536
++        ip = addr[0]
++        port = int(addr[1])
++
++        logging.debug('http://%s:%d/web/index.html' % (ip, port))
++
++        metadata = self._get_metadata()
++
++        self._jobject = datastore.get(metadata['uid'])
++        # Add the information about the user uploading this object
++        user_data = get_user_data()
++        self._jobject.metadata['shared_by'] = json.dumps(user_data)
++        # And add a comment to the Journal entry
++        if 'comments' in self._jobject.metadata:
++            comments = json.loads(self._jobject.metadata['comments'])
++        else:
++            comments = []
++        comments.append({'from':user_data['from'],
++                         'message':_('I shared this.'),
++                         'icon-color':'[%s,%s]' % (
++                             user_data['icon'][0], user_data['icon'][1])})
++        self._jobject.metadata['comments'] = json.dumps(comments)
++
++        if self._jobject and self._jobject.file_path:
++            tmp_path = '/tmp'
++            packaged_file_path = package_ds_object(self._jobject, tmp_path)
++            url = 'ws://%s:%d/websocket/upload' % (ip, port)
++            uploader = Uploader(packaged_file_path, url)
++            uploader.connect('uploaded', self.__uploaded_cb)
++            GObject.idle_add(self.emit, 'transfer-state-changed',
++                             _('Upload started'))
++            uploader.start()
++
++        return False
++
++    def __uploaded_cb(self, uploader, xfer_successful):
++        if xfer_successful:
++            datastore.write(self._jobject,
++                            update_mtime=False,
++                            reply_handler=self.__datastore_write_cb,
++                            error_handler=self.__datastore_write_error_cb)
++            GObject.idle_add(self.emit, 'transfer-state-changed',
++                             _('Upload completed'))
++            self.emit('comments-changed', self._jobject.metadata['comments'])
++        else:
++            GObject.idle_add(self.emit, 'transfer-state-changed',
++                             _('Upload failed'))
++
++    def __datastore_write_cb(self):
++        logging.debug('saved changes to local datastore')
++
++    def __datastore_write_error_cb(self, error):
++        logging.error('datastore_write_error_cb: %r' % error)
++
++
++# From JournalShare/utils.py
++
++
++class Uploader(GObject.GObject):
++
++    __gsignals__ = {
++        'uploaded': (GObject.SignalFlags.RUN_FIRST, None, ([bool])),
++        'transfer-state-changed': (GObject.SignalFlags.RUN_FIRST, None,
++                                   ([str]))
++    }
++
++    def __init__(self, file_path, url):
++        GObject.GObject.__init__(self)
++        logging.debug('websocket url %s', url)
++        # base64 encode the file
++        self._file = tempfile.TemporaryFile(mode='r+')
++        base64.encode(open(file_path, 'r'), self._file)
++        self._file.seek(0)
++
++        self._ws = websocket.WebSocketApp(url,
++                                          on_open=self._on_open,
++                                          on_message=self._on_message,
++                                          on_error=self._on_error,
++                                          on_close=self._on_close)
++        self._chunk = str(self._file.read(CHUNK_SIZE))
++
++    def start(self):
++        upload_loop = Thread(target=self._ws.run_forever)
++        upload_loop.setDaemon(True)
++        upload_loop.start()
++
++    def _on_open(self, ws):
++        if self._chunk != '':
++            self._ws.send(self._chunk)
++        else:
++            self._ws.close()
++
++    def _on_message(self, ws, message):
++        self._chunk = self._file.read(CHUNK_SIZE)
++        if self._chunk != '':
++            self._ws.send(self._chunk)
++        else:
++            self._ws.close()
++
++    def _on_error(self, ws, error):
++        self.emit('transfer-state-changed', _('Upload failed'), False)
++
++    def _on_close(self, ws):
++        self._file.close()
++        GObject.idle_add(self.emit, 'uploaded', True)
++
++
++def get_user_data():
++    """
++    Create this structure:
++    {"from": "Walter Bender", "icon": ["#FFC169", "#FF2B34"]}
++    used to identify the owner of a shared object
++    is compatible with how the comments are saved in
++    http://wiki.sugarlabs.org/go/Features/Comment_box_in_journal_detail_view
++    """
++    xo_color = profile.get_color()
++    data = {}
++    data['from'] = profile.get_nick_name()
++    data['icon'] = [xo_color.get_stroke_color(), xo_color.get_fill_color()]
++    return data
++
++
++def package_ds_object(dsobj, destination_path):
++    """
++    Creates a zipped file with the file associated to a journal object,
++    the preview and the metadata
++    """
++    object_id = dsobj.object_id
++    logging.debug('id %s', object_id)
++    preview_path = None
++
++    logging.debug('before preview')
++    if 'preview' in dsobj.metadata:
++        # TODO: copied from expandedentry.py
++        # is needed because record is saving the preview encoded
++        if dsobj.metadata['preview'][1:4] == 'PNG':
++            preview = dsobj.metadata['preview']
++        else:
++            # TODO: We are close to be able to drop this.
++            preview = base64.b64decode(dsobj.metadata['preview'])
++
++        preview_path = os.path.join(destination_path,
++                                    'preview_id_' + object_id)
++        preview_file = open(preview_path, 'w')
++        preview_file.write(preview)
++        preview_file.close()
++
++    logging.debug('before metadata')
++    # create file with the metadata
++    metadata_path = os.path.join(destination_path,
++                                 'metadata_id_' + object_id)
++    metadata_file = open(metadata_path, 'w')
++    metadata = {}
++    for key in dsobj.metadata.keys():
++        if key not in ('object_id', 'preview', 'progress'):
++            metadata[key] = dsobj.metadata[key]
++    metadata['original_object_id'] = dsobj.object_id
++
++    metadata_file.write(json.dumps(metadata))
++    metadata_file.close()
++
++    logging.debug('before create zip')
++
++    # create a zip fileincluding metadata and preview
++    # to be read from the web server
++    file_path = os.path.join(destination_path, 'id_' + object_id + '.journal')
++
++    with ZipFile(file_path, 'w') as myzip:
++        if preview_path is not None:
++            myzip.write(preview_path, 'preview')
++        myzip.write(metadata_path, 'metadata')
++        myzip.write(dsobj.file_path, 'data')
++    return file_path
++
++
++def get_account():
++    return Account()
+diff --git a/extensions/webservice/teachershare/teachershare/Makefile.am b/extensions/webservice/teachershare/teachershare/Makefile.am
+new file mode 100644
+index 0000000..f711d4c
+--- /dev/null
++++ b/extensions/webservice/teachershare/teachershare/Makefile.am
+@@ -0,0 +1,4 @@
++sugardir = $(pkgdatadir)/extensions/webservice/teachershare/teachershare
++
++sugar_PYTHON = __init__.py \
++	teachershare.py
+diff --git a/extensions/webservice/teachershare/teachershare/__init__.py b/extensions/webservice/teachershare/teachershare/__init__.py
+new file mode 100644
+index 0000000..d1a77a5
+--- /dev/null
++++ b/extensions/webservice/teachershare/teachershare/__init__.py
+@@ -0,0 +1 @@
++# empty python __init_.py
+diff --git a/extensions/webservice/teachershare/teachershare/teachershare.py b/extensions/webservice/teachershare/teachershare/teachershare.py
+new file mode 100644
+index 0000000..5bbe2b7
+--- /dev/null
++++ b/extensions/webservice/teachershare/teachershare/teachershare.py
+@@ -0,0 +1,21 @@
++# Copyright (c) 2013 Martin Abente Lahaye. - martin.abente.lahaye@gmail.com
++#
++# This library is free software; you can redistribute it and/or
++# modify it under the terms of the GNU Lesser General Public
++# License as published by the Free Software Foundation; either
++# version 2.1 of the License, or (at your option) any later version.
++#
++# This library is distributed in the hope that it will be useful,
++# but WITHOUT ANY WARRANTY; without even the implied warranty of
++# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++# Lesser General Public License for more details.
++#
++# You should have received a copy of the GNU Lesser General Public
++# License along with this library; if not, write to the Free Software
++# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
++# MA 02110-1301 USA.
++
++
++class TeacherShare():
++    def __init__(self):
++        return
+diff --git a/extensions/webservice/teachershare/websocket.py b/extensions/webservice/teachershare/websocket.py
+new file mode 100644
+index 0000000..71d8b7e
+--- /dev/null
++++ b/extensions/webservice/teachershare/websocket.py
+@@ -0,0 +1,742 @@
++"""
++websocket - WebSocket client library for Python
++
++Copyright (C) 2010 Hiroki Ohtani(liris)
++
++    This library is free software; you can redistribute it and/or
++    modify it under the terms of the GNU Lesser General Public
++    License as published by the Free Software Foundation; either
++    version 2.1 of the License, or (at your option) any later version.
++
++    This library is distributed in the hope that it will be useful,
++    but WITHOUT ANY WARRANTY; without even the implied warranty of
++    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++    Lesser General Public License for more details.
++
++    You should have received a copy of the GNU Lesser General Public
++    License along with this library; if not, write to the Free Software
++    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
++
++"""        
++
++
++import socket
++from urlparse import urlparse
++import os
++import struct
++import uuid
++import sha
++import base64
++import logging
++
++"""
++websocket python client.
++=========================
++
++This version support only hybi-13.
++Please see http://tools.ietf.org/html/rfc6455 for protocol.
++"""
++
++
++# websocket supported version.
++VERSION = 13
++
++# closing frame status codes.
++STATUS_NORMAL = 1000
++STATUS_GOING_AWAY = 1001
++STATUS_PROTOCOL_ERROR = 1002
++STATUS_UNSUPPORTED_DATA_TYPE = 1003
++STATUS_STATUS_NOT_AVAILABLE = 1005
++STATUS_ABNORMAL_CLOSED = 1006
++STATUS_INVALID_PAYLOAD = 1007
++STATUS_POLICY_VIOLATION = 1008
++STATUS_MESSAGE_TOO_BIG = 1009
++STATUS_INVALID_EXTENSION = 1010
++STATUS_UNEXPECTED_CONDITION = 1011
++STATUS_TLS_HANDSHAKE_ERROR = 1015
++
++logger = logging.getLogger()
++
++class WebSocketException(Exception):
++    """
++    websocket exeception class.
++    """
++    pass
++
++default_timeout = None
++traceEnabled = False
++
++def enableTrace(tracable):
++    """
++    turn on/off the tracability.
++
++    tracable: boolean value. if set True, tracability is enabled.
++    """
++    global traceEnabled
++    traceEnabled = tracable
++    if tracable:
++        if not logger.handlers:
++            logger.addHandler(logging.StreamHandler())
++        logger.setLevel(logging.DEBUG)
++
++def setdefaulttimeout(timeout):
++    """
++    Set the global timeout setting to connect.
++
++    timeout: default socket timeout time. This value is second.
++    """
++    global default_timeout
++    default_timeout = timeout
++
++def getdefaulttimeout():
++    """
++    Return the global timeout setting(second) to connect.
++    """
++    return default_timeout
++
++def _parse_url(url):
++    """
++    parse url and the result is tuple of 
++    (hostname, port, resource path and the flag of secure mode)
++
++    url: url string.
++    """
++    if ":" not in url:
++        raise ValueError("url is invalid")
++
++    scheme, url = url.split(":", 1)
++    url = url.rstrip("/")
++
++    parsed = urlparse(url, scheme="http")
++    if parsed.hostname:
++        hostname = parsed.hostname
++    else:
++        raise ValueError("hostname is invalid")
++    port = 0
++    if parsed.port:
++        port = parsed.port
++
++    is_secure = False
++    if scheme == "ws":
++        if not port:
++            port = 80
++    elif scheme == "wss":
++        is_secure = True
++        if not port:
++            port  = 443
++    else:
++        raise ValueError("scheme %s is invalid" % scheme)
++
++    if parsed.path:
++        resource = parsed.path
++    else:
++        resource = "/"
++
++    return (hostname, port, resource, is_secure)
++
++def create_connection(url, timeout=None, **options):
++    """
++    connect to url and return websocket object.
++
++    Connect to url and return the WebSocket object.
++    Passing optional timeout parameter will set the timeout on the socket.
++    If no timeout is supplied, the global default timeout setting returned by getdefauttimeout() is used.
++    You can customize using 'options'.
++    If you set "headers" dict object, you can set your own custom header.
++
++    >>> conn = create_connection("ws://echo.websocket.org/",
++    ...     headers={"User-Agent": "MyProgram"})
++
++    timeout: socket timeout time. This value is integer.
++             if you set None for this value, it means "use default_timeout value"
++
++    options: current support option is only "header".
++             if you set header as dict value, the custom HTTP headers are added.
++    """
++    websock = WebSocket()
++    websock.settimeout(timeout != None and timeout or default_timeout)
++    websock.connect(url, **options)
++    return websock
++
++_MAX_INTEGER = (1 << 32) -1
++_AVAILABLE_KEY_CHARS = range(0x21, 0x2f + 1) + range(0x3a, 0x7e + 1)
++_MAX_CHAR_BYTE = (1<<8) -1
++
++# ref. Websocket gets an update, and it breaks stuff.
++# http://axod.blogspot.com/2010/06/websocket-gets-update-and-it-breaks.html
++
++def _create_sec_websocket_key():
++    uid = uuid.uuid4()
++    return base64.encodestring(uid.bytes).strip()
++
++_HEADERS_TO_CHECK = {
++    "upgrade": "websocket",
++    "connection": "upgrade",
++    }
++
++class _SSLSocketWrapper(object):
++    def __init__(self, sock):
++        self.ssl = socket.ssl(sock)
++
++    def recv(self, bufsize):
++        return self.ssl.read(bufsize)
++    
++    def send(self, payload):
++        return self.ssl.write(payload)
++
++_BOOL_VALUES = (0, 1)
++def _is_bool(*values):
++    for v in values:
++        if v not in _BOOL_VALUES:
++            return False
++    
++    return True
++
++class ABNF(object):
++    """
++    ABNF frame class.
++    see http://tools.ietf.org/html/rfc5234
++    and http://tools.ietf.org/html/rfc6455#section-5.2
++    """
++    
++    # operation code values.
++    OPCODE_TEXT   = 0x1
++    OPCODE_BINARY = 0x2
++    OPCODE_CLOSE  = 0x8
++    OPCODE_PING   = 0x9
++    OPCODE_PONG   = 0xa
++    
++    # available operation code value tuple
++    OPCODES = (OPCODE_TEXT, OPCODE_BINARY, OPCODE_CLOSE,
++                OPCODE_PING, OPCODE_PONG)
++
++    # opcode human readable string
++    OPCODE_MAP = {
++        OPCODE_TEXT: "text",
++        OPCODE_BINARY: "binary",
++        OPCODE_CLOSE: "close",
++        OPCODE_PING: "ping",
++        OPCODE_PONG: "pong"
++        }
++
++    # data length threashold.
++    LENGTH_7  = 0x7d
++    LENGTH_16 = 1 << 16
++    LENGTH_63 = 1 << 63
++
++    def __init__(self, fin = 0, rsv1 = 0, rsv2 = 0, rsv3 = 0,
++                 opcode = OPCODE_TEXT, mask = 1, data = ""):
++        """
++        Constructor for ABNF.
++        please check RFC for arguments.
++        """
++        self.fin = fin
++        self.rsv1 = rsv1
++        self.rsv2 = rsv2
++        self.rsv3 = rsv3
++        self.opcode = opcode
++        self.mask = mask
++        self.data = data
++        self.get_mask_key = os.urandom
++
++    @staticmethod
++    def create_frame(data, opcode):
++        """
++        create frame to send text, binary and other data.
++        
++        data: data to send. This is string value(byte array).
++            if opcode is OPCODE_TEXT and this value is uniocde,
++            data value is conveted into unicode string, automatically.
++
++        opcode: operation code. please see OPCODE_XXX.
++        """
++        if opcode == ABNF.OPCODE_TEXT and isinstance(data, unicode):
++            data = data.encode("utf-8")
++        # mask must be set if send data from client
++        return ABNF(1, 0, 0, 0, opcode, 1, data)
++
++    def format(self):
++        """
++        format this object to string(byte array) to send data to server.
++        """
++        if not _is_bool(self.fin, self.rsv1, self.rsv2, self.rsv3):
++            raise ValueError("not 0 or 1")
++        if self.opcode not in ABNF.OPCODES:
++            raise ValueError("Invalid OPCODE")
++        length = len(self.data)
++        if length >= ABNF.LENGTH_63:
++            raise ValueError("data is too long")
++        
++        frame_header = chr(self.fin << 7
++                           | self.rsv1 << 6 | self.rsv2 << 5 | self.rsv3 << 4
++                           | self.opcode)
++        if length < ABNF.LENGTH_7:
++            frame_header += chr(self.mask << 7 | length)
++        elif length < ABNF.LENGTH_16:
++            frame_header += chr(self.mask << 7 | 0x7e)
++            frame_header += struct.pack("!H", length)
++        else:
++            frame_header += chr(self.mask << 7 | 0x7f)
++            frame_header += struct.pack("!Q", length)
++        
++        if not self.mask:
++            return frame_header + self.data
++        else:
++            mask_key = self.get_mask_key(4)
++            return frame_header + self._get_masked(mask_key)
++
++    def _get_masked(self, mask_key):
++        s = ABNF.mask(mask_key, self.data)
++        return mask_key + "".join(s)
++
++    @staticmethod
++    def mask(mask_key, data):
++        """
++        mask or unmask data. Just do xor for each byte
++
++        mask_key: 4 byte string(byte).
++        
++        data: data to mask/unmask.
++        """
++        _m = map(ord, mask_key)
++        _d = map(ord, data)
++        for i in range(len(_d)):
++            _d[i] ^= _m[i % 4]
++        s = map(chr, _d)
++        return "".join(s)
++
++class WebSocket(object):
++    """
++    Low level WebSocket interface.
++    This class is based on
++      The WebSocket protocol draft-hixie-thewebsocketprotocol-76
++      http://tools.ietf.org/html/draft-hixie-thewebsocketprotocol-76
++
++    We can connect to the websocket server and send/recieve data.
++    The following example is a echo client.
++
++    >>> import websocket
++    >>> ws = websocket.WebSocket()
++    >>> ws.connect("ws://echo.websocket.org")
++    >>> ws.send("Hello, Server")
++    >>> ws.recv()
++    'Hello, Server'
++    >>> ws.close()
++    
++    get_mask_key: a callable to produce new mask keys, see the set_mask_key 
++      function's docstring for more details
++    """
++    def __init__(self, get_mask_key = None):
++        """
++        Initalize WebSocket object.
++        """
++        self.connected = False
++        self.io_sock = self.sock = socket.socket()
++        self.get_mask_key = get_mask_key
++        
++    def set_mask_key(self, func):
++        """
++        set function to create musk key. You can custumize mask key generator.
++        Mainly, this is for testing purpose.
++
++        func: callable object. the fuct must 1 argument as integer.
++              The argument means length of mask key.
++              This func must be return string(byte array),
++              which length is argument specified.
++        """
++        self.get_mask_key = func
++
++    def settimeout(self, timeout):
++        """
++        Set the timeout to the websocket.
++        
++        timeout: timeout time(second).
++        """
++        self.sock.settimeout(timeout)
++
++    def gettimeout(self):
++        """
++        Get the websocket timeout(second).
++        """
++        return self.sock.gettimeout()
++    
++    def connect(self, url, **options):
++        """
++        Connect to url. url is websocket url scheme. ie. ws://host:port/resource
++        You can customize using 'options'.
++        If you set "headers" dict object, you can set your own custom header.
++        
++        >>> ws = WebSocket()
++        >>> ws.connect("ws://echo.websocket.org/",
++        ...     headers={"User-Agent": "MyProgram"})
++
++        timeout: socket timeout time. This value is integer.
++                 if you set None for this value,
++                 it means "use default_timeout value"
++
++        options: current support option is only "header".
++                 if you set header as dict value,
++                 the custom HTTP headers are added.
++
++        """
++        hostname, port, resource, is_secure = _parse_url(url)
++        # TODO: we need to support proxy
++        self.sock.connect((hostname, port))
++        if is_secure:
++            self.io_sock = _SSLSocketWrapper(self.sock)
++        self._handshake(hostname, port, resource, **options)
++
++    def _handshake(self, host, port, resource, **options):
++        sock = self.io_sock
++        headers = []
++        headers.append("GET %s HTTP/1.1" % resource)
++        headers.append("Upgrade: websocket")
++        headers.append("Connection: Upgrade")
++        if port == 80:
++            hostport = host
++        else:
++            hostport = "%s:%d" % (host, port)
++        headers.append("Host: %s" % hostport)
++        headers.append("Origin: %s" % hostport)
++   
++        key = _create_sec_websocket_key()
++        headers.append("Sec-WebSocket-Key: %s" % key)
++        headers.append("Sec-WebSocket-Protocol: chat, superchat")
++        headers.append("Sec-WebSocket-Version: %s" % VERSION)
++        if "header" in options:
++            headers.extend(options["header"])
++
++        headers.append("")
++        headers.append("")
++
++        header_str = "\r\n".join(headers)
++        sock.send(header_str)
++        if traceEnabled:
++            logger.debug( "--- request header ---")
++            logger.debug( header_str)
++            logger.debug("-----------------------")
++
++        status, resp_headers = self._read_headers()
++        if status != 101:
++            self.close()
++            raise WebSocketException("Handshake Status %d" % status)
++
++        success = self._validate_header(resp_headers, key)
++        if not success:
++            self.close()
++            raise WebSocketException("Invalid WebSocket Header")
++
++        self.connected = True
++    
++    def _validate_header(self, headers, key):
++        for k, v in _HEADERS_TO_CHECK.iteritems():
++            r = headers.get(k, None)
++            if not r:
++                return False
++            r = r.lower()
++            if v != r:
++                return False
++
++        result = headers.get("sec-websocket-accept", None)
++        if not result:
++            return False
++        result = result.lower()
++        
++        value = key + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
++        hashed = base64.encodestring(sha.sha(value).digest()).strip().lower()
++        return hashed == result
++
++    def _read_headers(self):
++        status = None
++        headers = {}
++        if traceEnabled:
++            logger.debug("--- response header ---")
++            
++        while True:
++            line = self._recv_line()
++            if line == "\r\n":
++                break
++            line = line.strip()
++            if traceEnabled:
++                logger.debug(line)
++            if not status:
++                status_info = line.split(" ", 2)
++                status = int(status_info[1])
++            else:
++                kv = line.split(":", 1)
++                if len(kv) == 2:
++                    key, value = kv
++                    headers[key.lower()] = value.strip().lower()
++                else:
++                    raise WebSocketException("Invalid header")
++
++        if traceEnabled:
++            logger.debug("-----------------------")
++        
++        return status, headers    
++    
++    def send(self, payload, opcode = ABNF.OPCODE_TEXT):
++        """
++        Send the data as string. 
++
++        payload: Payload must be utf-8 string or unicoce,
++                  if the opcode is OPCODE_TEXT.
++                  Otherwise, it must be string(byte array)
++
++        opcode: operation code to send. Please see OPCODE_XXX.
++        """
++        frame = ABNF.create_frame(payload, opcode)
++        if self.get_mask_key:
++            frame.get_mask_key = self.get_mask_key
++        data = frame.format()
++        self.io_sock.send(data)
++        if traceEnabled:
++            logger.debug("send: " + repr(data))
++
++    def ping(self, payload = ""):
++        """
++        send ping data.
++        
++        payload: data payload to send server.
++        """
++        self.send(payload, ABNF.OPCODE_PING)
++
++    def pong(self, payload):
++        """
++        send pong data.
++        
++        payload: data payload to send server.
++        """
++        self.send(payload, ABNF.OPCODE_PONG)
++
++    def recv(self):
++        """
++        Receive string data(byte array) from the server.
++
++        return value: string(byte array) value.
++        """
++        opcode, data = self.recv_data()
++        return data
++
++    def recv_data(self):
++        """
++        Recieve data with operation code.
++        
++        return  value: tuple of operation code and string(byte array) value.
++        """
++        while True:
++            frame = self.recv_frame()
++            if not frame:
++                # handle error: 
++                # 'NoneType' object has no attribute 'opcode'
++                raise WebSocketException("Not a valid frame %s" % frame)
++            elif frame.opcode in (ABNF.OPCODE_TEXT, ABNF.OPCODE_BINARY):
++                return (frame.opcode, frame.data)
++            elif frame.opcode == ABNF.OPCODE_CLOSE:
++                self.send_close()
++                return (frame.opcode, None)
++            elif frame.opcode == ABNF.OPCODE_PING:
++                self.pong("Hi!")
++
++
++    def recv_frame(self):
++        """
++        recieve data as frame from server.
++
++        return value: ABNF frame object.
++        """
++        header_bytes = self._recv(2)
++        if not header_bytes:
++            return None
++        b1 = ord(header_bytes[0])
++        fin = b1 >> 7 & 1
++        rsv1 = b1 >> 6 & 1
++        rsv2 = b1 >> 5 & 1
++        rsv3 = b1 >> 4 & 1
++        opcode = b1 & 0xf
++        b2 = ord(header_bytes[1])
++        mask = b2 >> 7 & 1
++        length = b2 & 0x7f
++
++        length_data = ""
++        if length == 0x7e:
++            length_data = self._recv(2)
++            length = struct.unpack("!H", length_data)[0]
++        elif length == 0x7f:
++            length_data = self._recv(8)
++            length = struct.unpack("!Q", length_data)[0]
++
++        mask_key = ""
++        if mask:
++            mask_key = self._recv(4)
++        data = self._recv_strict(length)
++        if traceEnabled:
++            recieved = header_bytes + length_data + mask_key + data
++            logger.debug("recv: " + repr(recieved))
++
++        if mask:
++            data = ABNF.mask(mask_key, data)
++        
++        frame = ABNF(fin, rsv1, rsv2, rsv3, opcode, mask, data)
++        return frame
++
++    def send_close(self, status = STATUS_NORMAL, reason = ""):
++        """
++        send close data to the server.
++        
++        status: status code to send. see STATUS_XXX.
++
++        reason: the reason to close. This must be string.
++        """
++        if status < 0 or status >= ABNF.LENGTH_16:
++            raise ValueError("code is invalid range")
++        self.send(struct.pack('!H', status) + reason, ABNF.OPCODE_CLOSE)
++        
++
++
++    def close(self, status = STATUS_NORMAL, reason = ""):
++        """
++        Close Websocket object
++
++        status: status code to send. see STATUS_XXX.
++
++        reason: the reason to close. This must be string.
++        """
++        if self.connected:
++            if status < 0 or status >= ABNF.LENGTH_16:
++                raise ValueError("code is invalid range")
++
++            try:
++                self.send(struct.pack('!H', status) + reason, ABNF.OPCODE_CLOSE)
++                timeout = self.sock.gettimeout()
++                self.sock.settimeout(3)
++                try:
++                    frame = self.recv_frame()
++                    if logger.isEnabledFor(logging.DEBUG):
++                        logger.error("close status: " + repr(frame.data))
++                except:
++                    pass
++                self.sock.settimeout(timeout)
++                self.sock.shutdown(socket.SHUT_RDWR)
++            except:
++                pass
++        self._closeInternal()
++
++    def _closeInternal(self):
++        self.connected = False
++        self.sock.close()
++        self.io_sock = self.sock
++        
++    def _recv(self, bufsize):
++        bytes = self.io_sock.recv(bufsize)
++        return bytes
++
++    def _recv_strict(self, bufsize):
++        remaining = bufsize
++        bytes = ""
++        while remaining:
++            bytes += self._recv(remaining)
++            remaining = bufsize - len(bytes)
++            
++        return bytes
++
++    def _recv_line(self):
++        line = []
++        while True:
++            c = self._recv(1)
++            line.append(c)
++            if c == "\n":
++                break
++        return "".join(line)
++            
++class WebSocketApp(object):
++    """
++    Higher level of APIs are provided. 
++    The interface is like JavaScript WebSocket object.
++    """
++    def __init__(self, url,
++                 on_open = None, on_message = None, on_error = None, 
++                 on_close = None, keep_running = True, get_mask_key = None):
++        """
++        url: websocket url.
++        on_open: callable object which is called at opening websocket.
++          this function has one argument. The arugment is this class object.
++        on_message: callbale object which is called when recieved data.
++         on_message has 2 arguments. 
++         The 1st arugment is this class object.
++         The passing 2nd arugment is utf-8 string which we get from the server.
++       on_error: callable object which is called when we get error.
++         on_error has 2 arguments.
++         The 1st arugment is this class object.
++         The passing 2nd arugment is exception object.
++       on_close: callable object which is called when closed the connection.
++         this function has one argument. The arugment is this class object.
++       keep_running: a boolean flag indicating whether the app's main loop should
++         keep running, defaults to True
++       get_mask_key: a callable to produce new mask keys, see the WebSocket.set_mask_key's
++         docstring for more information
++        """
++        self.url = url
++        self.on_open = on_open
++        self.on_message = on_message
++        self.on_error = on_error
++        self.on_close = on_close
++        self.keep_running = keep_running
++        self.get_mask_key = get_mask_key
++        self.sock = None
++
++    def send(self, data):
++        """
++        send message. data must be utf-8 string or unicode.
++        """
++        self.sock.send(data)
++
++    def close(self):
++        """
++        close websocket connection.
++        """
++        self.keep_running = False
++        self.sock.close()
++
++    def run_forever(self):
++        """
++        run event loop for WebSocket framework.
++        This loop is infinite loop and is alive during websocket is available.
++        """
++        if self.sock:
++            raise WebSocketException("socket is already opened")
++        try:
++            self.sock = WebSocket(self.get_mask_key)
++            self.sock.connect(self.url)
++            self._run_with_no_err(self.on_open)
++            while self.keep_running:
++                data = self.sock.recv()
++                if data is None:
++                    break
++                self._run_with_no_err(self.on_message, data)
++        except Exception, e:
++            self._run_with_no_err(self.on_error, e)
++        finally:
++            self.sock.close()
++            self._run_with_no_err(self.on_close)
++            self.sock = None
++
++    def _run_with_no_err(self, callback, *args):
++        if callback:
++            try:
++                callback(self, *args)
++            except Exception, e:
++                if logger.isEnabledFor(logging.DEBUG):
++                    logger.error(e)
++
++
++if __name__ == "__main__":
++    enableTrace(True)
++    ws = create_connection("ws://echo.websocket.org/")
++    print "Sending 'Hello, World'..."
++    ws.send("Hello, World")
++    print "Sent"
++    print "Receiving..."
++    result =  ws.recv()
++    print "Received '%s'" % result
++    ws.close()
+-- 
+1.8.1.4
+
