@@ -3,10 +3,10 @@
 Summary: Sugar toolkit
 Name: sugar-toolkit
 Version: 0.98.1
-Release: 1.olpcau
+Release: 2.olpcau
 URL: http://wiki.laptop.org/go/Sugar
 Source0: http://download.sugarlabs.org/sources/sucrose/glucose/%{name}/%{name}-%{version}.tar.bz2
-Source1: macros.sugar
+#Source1: macros.sugar
 Patch0: 0001-Inhibit-suspend-while-sharing-OLPC-10363.patch
 License: LGPLv2+
 Group: System Environment/Libraries
@@ -50,7 +50,7 @@ make %{?_smp_mflags} V=1
 make install DESTDIR=%{buildroot}
 
 mkdir -p %{buildroot}/%{_sysconfdir}/rpm/
-install -p %{SOURCE1} $RPM_BUILD_ROOT%{_sysconfdir}/rpm/macros.sugar
+#install -p %{SOURCE1} $RPM_BUILD_ROOT%{_sysconfdir}/rpm/macros.sugar
 
 %find_lang %name
 
@@ -61,7 +61,7 @@ find %{buildroot} -name '*.la' -exec rm -f {} ';'
 %defattr(-,root,root,-)
 %doc COPYING README
 %{python_sitelib}/*
-%{_sysconfdir}/rpm/macros.sugar
+#%{_sysconfdir}/rpm/macros.sugar
 
 %changelog
 * Sat Feb 16 2013 Peter Robinson <pbrobinson@fedoraproject.org> 0.98.1-1
