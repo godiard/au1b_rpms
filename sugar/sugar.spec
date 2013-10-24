@@ -2,12 +2,12 @@
 
 Summary: Constructionist learning platform
 Name:    sugar
-Version: 0.99.3
-Release: git20130925.7.olpcau
+Version: 0.99.4
+Release: git20131023.1.olpcau
 URL:     http://sugarlabs.org/
 License: GPLv2+
 Group:   User Interface/Desktops
-Source0: sugar-0.99.3.git20130925.tar
+Source0: sugar-0.99.4.git20131023.tar
 Patch0:  sugar-gnomekeyring.patch
 Patch1:  0001-add-age-and-gender-to-intro-and-aboutme-section-of-c.patch
 Patch2:  0001-add-dbus-method-to-update-favorites.patch
@@ -28,6 +28,10 @@ Patch16: 0002-Make-combo-in-proxy-selection-more-generic.patch
 Patch17: 0003-Ask-in-the-newtwork-panel-options-based-on-connectiv.patch
 Patch18: 0004-Connect-to-a-hidden-network-using-a-profile.patch
 Patch19: 0001-Add-teacher-webservice.patch
+Patch20: 0001-Small-fixes-to-Connect-to-a-hidden-network-using-a-p.patch
+Patch21: 0001-don-t-check-for-maximum-activities-instances-until-a.patch
+Patch22: 0001-Teacher-webservice-fix-error-after-sending-a-first-o.patch
+Patch23: 0001-Stop-all-the-activities-if-tried-to-shutdown-after-3.patch
 
 BuildRequires: gettext
 BuildRequires: GConf2-devel
@@ -195,6 +199,10 @@ This is the Sugar Web Services. Right now, only Teacher.
 %patch17 -p1 -b .hidden_profile
 %patch18 -p1 -b .hidden_profile2
 %patch19 -p1 -b .teacher_webser
+%patch20 -p1 -b .hidden_profile3
+%patch21 -p1 -b .fix_activities_number_control
+%patch22 -p1 -b .fix_teacher_webservice
+%patch23 -p1 -b .fix_sugar_stop
 
 %build
 # need run it again to include new files
@@ -251,7 +259,6 @@ fi
 %{python_sitelib}/*
 
 %{_datadir}/xsessions/sugar.desktop
-%{_datadir}/icons/hicolor/scalable/apps/sugar-xo.svg
 
 %{_bindir}/*
 %exclude %{_bindir}/sugar-emulator

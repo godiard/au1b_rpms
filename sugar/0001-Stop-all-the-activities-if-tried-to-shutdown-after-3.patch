@@ -1,0 +1,55 @@
+From c32a13e55ba0be9c49e0bca23dde818b5c67c3c5 Mon Sep 17 00:00:00 2001
+From: Gonzalo Odiard <godiard@gmail.com>
+Date: Wed, 23 Oct 2013 18:40:57 -0300
+Subject: [PATCH] Stop all the activities if tried to shutdown after 30 seconds
+
+When a activity crashed or can't close properly, like the actual version
+of Terminal Sugar can't logout or shutdown the computer.
+This patch wait 30 seconds and request all the activities to close.
+
+Signed-off-by: Gonzalo Odiard <gonzalo@laptop.org>
+---
+ src/jarabe/model/session.py | 6 ++++++
+ src/jarabe/model/shell.py   | 4 ++++
+ 2 files changed, 10 insertions(+)
+
+diff --git a/src/jarabe/model/session.py b/src/jarabe/model/session.py
+index bb42dd6..0620252 100644
+--- a/src/jarabe/model/session.py
++++ b/src/jarabe/model/session.py
+@@ -62,11 +62,17 @@ class SessionManager(GObject.GObject):
+     def initiate_shutdown(self, logout_mode):
+         self._logout_mode = logout_mode
+         self.shutdown_signal.emit()
++
++        # if sugar can't close in 30 seconds, try this
++        GObject.timeout_add_seconds(30, self.__close_activities)
+         self.session.initiate_shutdown()
+ 
+     def __shutdown_completed_cb(self, session):
+         GObject.timeout_add_seconds(self.SHUTDOWN_TIMEOUT, self._try_shutdown)
+ 
++    def __close_activities(self):
++        self._shell_model.stop_all_activities()
++
+     def _try_shutdown(self):
+         if len(self._shell_model) > 0:
+             self._shutdown_tries += 1
+diff --git a/src/jarabe/model/shell.py b/src/jarabe/model/shell.py
+index fc42d44..bce5fbb 100644
+--- a/src/jarabe/model/shell.py
++++ b/src/jarabe/model/shell.py
+@@ -768,6 +768,10 @@ class ShellModel(GObject.GObject):
+             self.notify_launch_failed(activity_id)
+         return False
+ 
++    def stop_all_activities(self):
++        # This method should be used only at sugar shutdown
++        for home_activity in self._activities:
++            home_activity.stop()
+ 
+ def get_model():
+     global _model
+-- 
+1.8.1.4
+
