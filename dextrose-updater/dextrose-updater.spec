@@ -1,6 +1,6 @@
 Name:	dextrose-updater	
 Version:	5
-Release:	1%{?dist}
+Release:	2.olpcau%{?dist}
 Summary:	A yum based updater for sugar-dextrose. Updates the sugar-dextrose related packages automatically and emits dbus messages (for the sugar notification system, if installed)
 
 Group:		Applications/Updating
@@ -27,7 +27,7 @@ A yum based updater for sugar-dextrose. Updates the sugar-dextrose related packa
 %install
 rm -rf $RPM_BUILD_ROOT
 
-make DESTDIR=%{buildroot} REPO="dextrose dextrose-freeworld" install
+make DESTDIR=%{buildroot} REPO="au1b-updates" install
 
 %clean
 rm -rf $RPM_BUILD_ROOT
