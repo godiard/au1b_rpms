@@ -2,12 +2,12 @@
 
 Summary: Constructionist learning platform
 Name:    sugar
-Version: 0.99.4
-Release: git20131023.1.olpcau
+Version: 0.100.1
+Release: 2.olpcau
 URL:     http://sugarlabs.org/
 License: GPLv2+
 Group:   User Interface/Desktops
-Source0: sugar-0.99.4.git20131023.tar
+Source0: sugar-0.100.1.tar
 Patch0:  sugar-gnomekeyring.patch
 Patch1:  0001-add-age-and-gender-to-intro-and-aboutme-section-of-c.patch
 Patch2:  0001-add-dbus-method-to-update-favorites.patch
@@ -17,7 +17,7 @@ Patch5:  0003-Control-Panel-Add-aoption-to-launch-the-network-mana.patch
 Patch6:  0004-Add-model-information-in-the-about-computer-control-.patch
 Patch7:  0005-Add-School-Fonts-license-in-control-panel.patch
 Patch8:  0006-Add-last-updated-information-in-the-control-Panel.patch
-Patch9:  0001-Add-5-GHz-frequency-channels-table-SL-4459.patch
+#Patch9:  0001-Add-5-GHz-frequency-channels-table-SL-4459.patch
 Patch10: 0010-WPA-enterprise-feature.patch
 Patch11: 0001-Fix-backup-restore-functionality-SL-4616.patch
 Patch12: 0001-Add-maximum-open-activity-limit.patch
@@ -32,6 +32,7 @@ Patch20: 0001-Small-fixes-to-Connect-to-a-hidden-network-using-a-p.patch
 Patch21: 0001-don-t-check-for-maximum-activities-instances-until-a.patch
 Patch22: 0001-Teacher-webservice-fix-error-after-sending-a-first-o.patch
 Patch23: 0001-Stop-all-the-activities-if-tried-to-shutdown-after-3.patch
+Patch24: 0001-Add-a-gconf-key-to-allow-hide-the-Register-menu.patch
 
 BuildRequires: gettext
 BuildRequires: GConf2-devel
@@ -188,7 +189,7 @@ This is the Sugar Web Services. Right now, only Teacher.
 %patch6 -p1 -b .model_info
 %patch7 -p1 -b .schools_fonts_info
 %patch8 -p1 -b .last_updated_info
-%patch9 -p1 -b .add_5ghz
+#%patch9 -p1 -b .add_5ghz
 %patch10 -p1 -b .wpa
 %patch11 -p1 -b .fix_backup
 %patch12 -p1 -b .max_acts
@@ -203,6 +204,7 @@ This is the Sugar Web Services. Right now, only Teacher.
 %patch21 -p1 -b .fix_activities_number_control
 %patch22 -p1 -b .fix_teacher_webservice
 %patch23 -p1 -b .fix_sugar_stop
+%patch24 -p1 -b .hide_register
 
 %build
 # need run it again to include new files
