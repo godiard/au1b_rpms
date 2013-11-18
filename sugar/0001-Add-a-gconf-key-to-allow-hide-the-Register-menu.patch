@@ -1,0 +1,61 @@
+From d417b83c673bc1327de101d5ca17bf8baf66d5ad Mon Sep 17 00:00:00 2001
+From: Gonzalo Odiard <godiard@gmail.com>
+Date: Tue, 29 Oct 2013 16:02:07 -0300
+Subject: [PATCH 1/2] Add a gconf key to allow hide the Register menu
+
+In deployments where school servers are not available,
+the Register option do nothing, and confise to the users.
+
+Signed-off-by: Gonzalo Odiard <gonzalo@laptop.org>
+---
+ src/jarabe/desktop/favoritesview.py | 33 ++++++++++++++++++++++-----------
+ 1 file changed, 22 insertions(+), 11 deletions(-)
+
+diff --git a/src/jarabe/desktop/favoritesview.py b/src/jarabe/desktop/favoritesview.py
+index 062e473..91e9bb3 100644
+--- a/src/jarabe/desktop/favoritesview.py
++++ b/src/jarabe/desktop/favoritesview.py
+@@ -649,18 +649,29 @@ class OwnerIcon(BuddyIcon):
+         palette = BuddyMenu(get_owner_instance())
+ 
+         client = GConf.Client.get_default()
+-        backup_url = client.get_string('/desktop/sugar/backup_url')
+ 
+-        if not backup_url:
+-            self._register_menu = PaletteMenuItem(_('Register'),
+-                                                  'media-record')
+-        else:
+-            self._register_menu = PaletteMenuItem(_('Register again'),
+-                                                  'media-record')
+-
+-        self._register_menu.connect('activate', self.__register_activate_cb)
+-        palette.menu_box.pack_end(self._register_menu, True, True, 0)
+-        self._register_menu.show()
++        show_register = True
++        # check if the key is set in gconf and get the value
++        # gconf return False to get_bool if is not set
++        gconf_key = '/desktop/sugar/show_register'
++        if client.get_without_default(gconf_key) is not None and \
++                not client.get_bool(gconf_key):
++            show_register = False
++
++        if show_register:
++            backup_url = client.get_string('/desktop/sugar/backup_url')
++
++            if not backup_url:
++                self._register_menu = PaletteMenuItem(_('Register'),
++                                                      'media-record')
++            else:
++                self._register_menu = PaletteMenuItem(_('Register again'),
++                                                      'media-record')
++
++            self._register_menu.connect('activate',
++                                        self.__register_activate_cb)
++            palette.menu_box.pack_end(self._register_menu, True, True, 0)
++            self._register_menu.show()
+ 
+         self.connect_to_palette_pop_events(palette)
+ 
+-- 
+1.8.1.4
+
