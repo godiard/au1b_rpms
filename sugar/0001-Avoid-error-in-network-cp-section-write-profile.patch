@@ -1,0 +1,25 @@
+From 65544cde71c9cff2222dc463f8190b3020f86193 Mon Sep 17 00:00:00 2001
+From: Gonzalo Odiard <godiard@gmail.com>
+Date: Tue, 19 Nov 2013 17:02:43 -0300
+Subject: [PATCH] Avoid error in network cp section, write profile
+
+---
+ extensions/cpsection/network/model.py | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/extensions/cpsection/network/model.py b/extensions/cpsection/network/model.py
+index 9c783ec..12adbb6 100644
+--- a/extensions/cpsection/network/model.py
++++ b/extensions/cpsection/network/model.py
+@@ -216,6 +216,8 @@ def get_proxy_profile_name():
+ 
+ 
+ def set_proxy_profile_name(profile_name):
++    if profile_name is None:
++        profile_name = ''
+     client = GConf.Client.get_default()
+     client.set_string('/desktop/sugar/network/proxy/profile_name',
+                       profile_name)
+-- 
+1.8.1.4
+
