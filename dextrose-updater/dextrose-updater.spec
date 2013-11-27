@@ -1,12 +1,14 @@
 Name:	dextrose-updater	
 Version:	5
-Release:	2.olpcau%{?dist}
+Release:	3.olpcau%{?dist}
 Summary:	A yum based updater for sugar-dextrose. Updates the sugar-dextrose related packages automatically and emits dbus messages (for the sugar notification system, if installed)
 
 Group:		Applications/Updating
 License:	GPLv3
 URL:		http://wiki.sugarlabs.org/go/Dextrose/Updater
 Source0:	http://download.sugarlabs.org/sources/external/%{name}/%{name}-%{version}.tar.gz	
+Patch0:     change_last_update_flag_file.diff
+
 BuildRoot:	%(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
 
 BuildArch:	noarch
@@ -21,6 +23,7 @@ A yum based updater for sugar-dextrose. Updates the sugar-dextrose related packa
 
 %prep
 %setup -q
+%patch0 -p1 -b .flag_file
 
 %build
 
