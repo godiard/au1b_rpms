@@ -1,0 +1,30 @@
+--- dextrose-updater-5.ori/dextrose-updater	2013-12-09 15:10:43.051027054 -0300
++++ dextrose-updater-5/dextrose-updater	2013-12-10 10:24:49.600364511 -0300
+@@ -58,6 +58,27 @@
+     fi
+ fi
+ 
++# get proxy values for olpc user
++HTTP_PROXY_HOST=$(sudo -u olpc gsettings get org.gnome.system.proxy.http host)
++HTTP_PROXY_PORT=$(sudo -u olpc gsettings get org.gnome.system.proxy.http port)
++HTTP_PROXY_USER=$(sudo -u olpc gsettings get org.gnome.system.proxy.http authentication-user)
++HTTP_PROXY_PASSWORD=$(sudo -u olpc gsettings get org.gnome.system.proxy.http authentication-password)
++
++if [ ${HTTP_PROXY_HOST} != "''" ]; then
++    if [ ${HTTP_PROXY_USER} == "''" ]; then
++        http_proxy=http://${HTTP_PROXY_HOST}:${HTTP_PROXY_PORT}
++    fi
++    if [ ${HTTP_PROXY_USER} != "''" ]; then
++        http_proxy=http://${HTTP_PROXY_USER}:${HTTP_PROXY_PASSWORD}@${HTTP_PROXY_HOST}:${HTTP_PROXY_PORT}
++    fi
++    http_proxy=$(echo $http_proxy | sed "s/'//g")
++    export http_proxy=$http_proxy
++    echo "Using proxy ${http_proxy}" >> ${logfile}
++fi
++if [ ${HTTP_PROXY_HOST} != '' ]; then
++    export http_proxy=''
++fi
++
+ rm -f ${stampfile}
+ 
+ echo "$(date)" >> ${logfile}
