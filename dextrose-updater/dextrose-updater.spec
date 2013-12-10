@@ -1,21 +1,20 @@
 Name:	dextrose-updater	
 Version:	5
-Release:	3.olpcau%{?dist}
+Release:	4.olpcau%{?dist}
 Summary:	A yum based updater for sugar-dextrose. Updates the sugar-dextrose related packages automatically and emits dbus messages (for the sugar notification system, if installed)
 
 Group:		Applications/Updating
 License:	GPLv3
 URL:		http://wiki.sugarlabs.org/go/Dextrose/Updater
-Source0:	http://download.sugarlabs.org/sources/external/%{name}/%{name}-%{version}.tar.gz	
+Source0:	%{name}-%{version}.tar.gz
 Patch0:     change_last_update_flag_file.diff
+Patch1:     networkmanager_hook.diff
 
 BuildRoot:	%(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
 
 BuildArch:	noarch
 
-#BuildRequires:	
-#Requires:	
-Packager: Anish Mangal <anish@sugarlabs.org>
+Packager: Gonzalo Odiard <godiard@sugarlabs.org>
 
 %description
 
@@ -24,6 +23,7 @@ A yum based updater for sugar-dextrose. Updates the sugar-dextrose related packa
 %prep
 %setup -q
 %patch0 -p1 -b .flag_file
+%patch1 -p1 -b .networkmanager
 
 %build
 
@@ -31,6 +31,9 @@ A yum based updater for sugar-dextrose. Updates the sugar-dextrose related packa
 rm -rf $RPM_BUILD_ROOT
 
 make DESTDIR=%{buildroot} REPO="au1b-updates" install
+
+%post
+chmod 755 /etc/NetworkManager/dispatcher.d/dextrose-updater-ifup
 
 %clean
 rm -rf $RPM_BUILD_ROOT
@@ -42,7 +45,7 @@ rm -rf $RPM_BUILD_DIR/%{name}-%{version}
 
 /usr/sbin/dextrose-updater
 /etc/sysconfig/dextrose-updater
-/etc/cron.hourly/dextrose-updater
+/etc/NetworkManager/dispatcher.d/dextrose-updater-ifup
 
 %changelog
 * Tue Feb 15 2011 Anish Mangal <anish@sugarlabs.org> 5-1

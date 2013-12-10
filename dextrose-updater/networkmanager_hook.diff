@@ -1,0 +1,32 @@
+diff -uNr dextrose-updater-5.ori/etc/dextrose-updater-ifup dextrose-updater-5/etc/dextrose-updater-ifup
+--- dextrose-updater-5.ori/etc/dextrose-updater-ifup	1969-12-31 21:00:00.000000000 -0300
++++ dextrose-updater-5/etc/dextrose-updater-ifup	2013-12-09 18:24:01.122198525 -0300
+@@ -0,0 +1,8 @@
++#!/usr/bin/env bash
++
++# Copyright (c) 2013 Gonzalo Odiard - gonzalo@sugarlabs.org
++# Licensed under the terms of the GNU GPL v2 or later.
++
++if [ "$2" = "up" ]; then
++    /usr/sbin/dextrose-updater
++fi
+diff -uNr dextrose-updater-5.ori/Makefile dextrose-updater-5/Makefile
+--- dextrose-updater-5.ori/Makefile	2013-12-09 15:10:43.068026777 -0300
++++ dextrose-updater-5/Makefile	2013-12-09 20:05:14.784908638 -0300
+@@ -5,7 +5,7 @@
+ REPO     = dextrose dextrose-freeworld
+ CONFDIR  = /etc/sysconfig
+ BINDIR   = /usr/sbin
+-CRONDIR  = /etc/cron.hourly
++NETWORKMANAGER_HOOK_DIR = /etc/NetworkManager/dispatcher.d
+ 
+ all:
+ 	@echo Build is not need, use dist or install targets
+@@ -22,5 +22,5 @@
+ 	sed -i 's/@REPO@/$(REPO)/g' $(DESTDIR)/$(CONFDIR)/$(NAME)
+ 	install -D -m 0755 dextrose-updater $(DESTDIR)/$(BINDIR)/$(NAME)
+ 	sed -i 's/@NAME@/$(NAME)/g; s/@VERSION@/$(VERSION)/g; s/@CONFDIR@/$(subst /,\/,$(CONFDIR))/g' $(DESTDIR)/$(BINDIR)/$(NAME)
+-	install -d -m 0755 $(DESTDIR)/$(CRONDIR)
+-	ln -s $(BINDIR)/$(NAME) $(DESTDIR)/$(CRONDIR)
++	mkdir -p $(DESTDIR)/$(NETWORKMANAGER_HOOK_DIR)
++	cp etc/dextrose-updater-ifup $(DESTDIR)/$(NETWORKMANAGER_HOOK_DIR)
