@@ -1,7 +1,7 @@
-From 30394d63dfbabbf74df044404b7a870365454e54 Mon Sep 17 00:00:00 2001
+From c85fd951964ce6926e665024bf7bffa93bbb57f8 Mon Sep 17 00:00:00 2001
 From: Gonzalo Odiard <godiard@gmail.com>
-Date: Tue, 13 Aug 2013 18:58:59 -0300
-Subject: [PATCH 1/6] Backup and Restore to a mounted device
+Date: Wed, 11 Dec 2013 23:02:26 -0300
+Subject: [PATCH 1/2] Backup and Restore to a mounted device
 
 Based in the current functionality in Dextrose
 The only changes are:
@@ -176,7 +176,7 @@ index 0000000..b7738ad
 +logging.debug('Restore finished')
 +exit(result)
 diff --git a/po/POTFILES.in b/po/POTFILES.in
-index e86ae8b..03eebc1 100644
+index 951465b..3613406 100644
 --- a/po/POTFILES.in
 +++ b/po/POTFILES.in
 @@ -73,6 +73,9 @@ src/jarabe/journal/palettes.py
@@ -187,10 +187,10 @@ index e86ae8b..03eebc1 100644
 +src/jarabe/journal/volumestoolbar.py
 +src/jarabe/model/processmanagement.py
  src/jarabe/model/network.py
+ src/jarabe/view/alerts.py
  src/jarabe/view/buddymenu.py
- src/jarabe/view/keyhandler.py
 diff --git a/src/jarabe/journal/Makefile.am b/src/jarabe/journal/Makefile.am
-index 9a2b831..b46afb8 100644
+index 9a2b831..99a2971 100644
 --- a/src/jarabe/journal/Makefile.am
 +++ b/src/jarabe/journal/Makefile.am
 @@ -17,4 +17,5 @@ sugar_PYTHON =				\
@@ -200,10 +200,10 @@ index 9a2b831..b46afb8 100644
 +	processdialog.py	\
  	volumestoolbar.py
 diff --git a/src/jarabe/journal/misc.py b/src/jarabe/journal/misc.py
-index 2d5fb28..fb9794b 100644
+index fbceabb..c853109 100644
 --- a/src/jarabe/journal/misc.py
 +++ b/src/jarabe/journal/misc.py
-@@ -340,3 +340,53 @@ def get_icon_color(metadata):
+@@ -375,3 +375,53 @@ def get_icon_color(metadata):
          return XoColor(client.get_string('/desktop/sugar/user/color'))
      else:
          return XoColor(metadata['icon-color'])
@@ -550,10 +550,10 @@ index 0000000..157d541
 +    def _check_prerequisites(self):
 +        return len(shell.get_model()) <= 2
 diff --git a/src/jarabe/journal/volumestoolbar.py b/src/jarabe/journal/volumestoolbar.py
-index c1d7a88..cae785b 100644
+index 5e4db32..8366306 100644
 --- a/src/jarabe/journal/volumestoolbar.py
 +++ b/src/jarabe/journal/volumestoolbar.py
-@@ -38,7 +38,7 @@ from sugar3 import env
+@@ -39,7 +39,7 @@ from sugar3 import env
  
  from jarabe.journal import model
  from jarabe.journal.misc import get_mount_icon_name
@@ -562,7 +562,7 @@ index c1d7a88..cae785b 100644
  
  
  _JOURNAL_0_METADATA_DIR = '.olpc.store'
-@@ -326,7 +326,7 @@ class VolumeButton(BaseButton):
+@@ -327,7 +327,7 @@ class VolumeButton(BaseButton):
          self.props.xo_color = color
  
      def create_palette(self):

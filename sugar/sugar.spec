@@ -3,29 +3,20 @@
 Summary: Constructionist learning platform
 Name:    sugar
 Version: 0.100.1
-Release: 3.olpcau
+Release: 4.olpcau
 URL:     http://sugarlabs.org/
 License: GPLv2+
 Group:   User Interface/Desktops
 Source0: sugar-0.100.1.tar
 
-# from sugar master, last commit is ae54fc4e6d23a1b7f145810ea5e9edd12fa220bb
+# from sugar master, last commit is 0c80477e4424160af76baf3e950d0eb31ee90d02
 
 Patch0:  sugar-gnomekeyring.patch
 Patch1:  0001-add-age-and-gender-to-intro-and-aboutme-section-of-c.patch
 Patch2:  0001-add-dbus-method-to-update-favorites.patch
-Patch3:  0001-Backup-and-Restore-to-a-mounted-device.patch
 Patch4:  0002-Add-proxy-configuration-support-to-Network-Control-P.patch
 Patch5:  0003-Control-Panel-Add-aoption-to-launch-the-network-mana.patch
-# Upstream
-#Patch6:  0004-Add-model-information-in-the-about-computer-control-.patch
-#Patch7:  0005-Add-School-Fonts-license-in-control-panel.patch
-#Patch8:  0006-Add-last-updated-information-in-the-control-Panel.patch
-#Patch9:  0001-Add-5-GHz-frequency-channels-table-SL-4459.patch
 Patch10: 0010-WPA-enterprise-feature.patch
-Patch11: 0001-Fix-backup-restore-functionality-SL-4616.patch
-#Patch12: 0001-Add-maximum-open-activity-limit.patch
-#Patch13: 0001-Add-maximum-open-instances-v2.patch
 Patch14: 0001-Add-section-to-configure-hidden-networks.patch
 Patch15: 0001-Implement-configuration-of-proxy-using-profile-files.patch
 Patch16: 0002-Make-combo-in-proxy-selection-more-generic.patch
@@ -33,12 +24,15 @@ Patch17: 0003-Ask-in-the-newtwork-panel-options-based-on-connectiv.patch
 Patch18: 0004-Connect-to-a-hidden-network-using-a-profile.patch
 Patch19: 0001-Add-teacher-webservice.patch
 Patch20: 0001-Small-fixes-to-Connect-to-a-hidden-network-using-a-p.patch
-#Patch21: 0001-don-t-check-for-maximum-activities-instances-until-a.patch
 Patch22: 0001-Teacher-webservice-fix-error-after-sending-a-first-o.patch
 Patch23: 0001-Stop-all-the-activities-if-tried-to-shutdown-after-3.patch
-# Upstream
-#Patch24: 0001-Add-a-gconf-key-to-allow-hide-the-Register-menu.patch
 Patch25: 0001-Avoid-error-in-network-cp-section-write-profile.patch
+
+Patch26: 0001-Move-class-HiddenNetworkManager-to-network.py.patch
+Patch27: 0002-Persist-the-parameters-loaded-by-the-user-in-the-net.patch
+Patch28: 0001-Backup-and-Restore-to-a-mounted-device.patch
+Patch29: 0002-Fix-backup-restore-functionality-SL-4616.patch
+Patch30: 0001-Connect-to-hidden-network-if-needed-at-cp-section-cl.patch
 
 BuildRequires: gettext
 BuildRequires: GConf2-devel
@@ -190,17 +184,9 @@ This is the Sugar Web Services. Right now, only Teacher.
 
 %patch1 -p1 -b .age_page
 %patch2 -p1 -b .add_dbus_method
-%patch3 -p1 -b .backup
 %patch4 -p1 -b .proxy_support
 %patch5 -p1 -b .add_nmce_launcher
-#%patch6 -p1 -b .model_info
-#%patch7 -p1 -b .schools_fonts_info
-#%patch8 -p1 -b .last_updated_info
-#%patch9 -p1 -b .add_5ghz
 %patch10 -p1 -b .wpa
-%patch11 -p1 -b .fix_backup
-#%patch12 -p1 -b .max_acts
-#%patch13 -p1 -b .max_instances
 %patch14 -p1 -b .hidden_networks
 %patch15 -p1 -b .proxy_conf
 %patch16 -p1 -b .sett_combo
@@ -208,11 +194,14 @@ This is the Sugar Web Services. Right now, only Teacher.
 %patch18 -p1 -b .hidden_profile2
 %patch19 -p1 -b .teacher_webser
 %patch20 -p1 -b .hidden_profile3
-#%patch21 -p1 -b .fix_activities_number_control
 %patch22 -p1 -b .fix_teacher_webservice
 %patch23 -p1 -b .fix_sugar_stop
-#%patch24 -p1 -b .hide_register
 %patch25 -p1 -b .network_cp_fix
+%patch26 -p1 -b .hidden_network_reorg
+%patch27 -p1 -b .hidden_network_persist
+%patch28 -p1 -b .backup
+%patch29 -p1 -b .backup_2
+%patch30 -p1 -b .hidden_network_3
 
 %build
 # need run it again to include new files
@@ -265,6 +254,7 @@ fi
 %dir %{_datadir}/sugar
 %dir %{_datadir}/sugar/activities
 %{_datadir}/sugar/*
+
 
 %{python_sitelib}/*
 
