@@ -3,13 +3,13 @@
 Summary: Constructionist learning platform
 Name:    sugar
 Version: 0.100.1
-Release: 4.olpcau
+Release: 5.olpcau
 URL:     http://sugarlabs.org/
 License: GPLv2+
 Group:   User Interface/Desktops
 Source0: sugar-0.100.1.tar
 
-# from sugar master, last commit is 0c80477e4424160af76baf3e950d0eb31ee90d02
+# from sugar master, last commit is 6a43e14e1cdcbdda97cfd5d8c0cbbff966dfcd0f
 
 Patch0:  sugar-gnomekeyring.patch
 Patch1:  0001-add-age-and-gender-to-intro-and-aboutme-section-of-c.patch
@@ -24,15 +24,15 @@ Patch17: 0003-Ask-in-the-newtwork-panel-options-based-on-connectiv.patch
 Patch18: 0004-Connect-to-a-hidden-network-using-a-profile.patch
 Patch19: 0001-Add-teacher-webservice.patch
 Patch20: 0001-Small-fixes-to-Connect-to-a-hidden-network-using-a-p.patch
-Patch22: 0001-Teacher-webservice-fix-error-after-sending-a-first-o.patch
 Patch23: 0001-Stop-all-the-activities-if-tried-to-shutdown-after-3.patch
 Patch25: 0001-Avoid-error-in-network-cp-section-write-profile.patch
 
 Patch26: 0001-Move-class-HiddenNetworkManager-to-network.py.patch
 Patch27: 0002-Persist-the-parameters-loaded-by-the-user-in-the-net.patch
 Patch28: 0001-Backup-and-Restore-to-a-mounted-device.patch
-Patch29: 0002-Fix-backup-restore-functionality-SL-4616.patch
 Patch30: 0001-Connect-to-hidden-network-if-needed-at-cp-section-cl.patch
+Patch31: 0001-Activity-Help-integration.patch
+Patch32: 0001-Set-env-variable-to-request-use-webkit1.patch
 
 BuildRequires: gettext
 BuildRequires: GConf2-devel
@@ -194,14 +194,14 @@ This is the Sugar Web Services. Right now, only Teacher.
 %patch18 -p1 -b .hidden_profile2
 %patch19 -p1 -b .teacher_webser
 %patch20 -p1 -b .hidden_profile3
-%patch22 -p1 -b .fix_teacher_webservice
 %patch23 -p1 -b .fix_sugar_stop
 %patch25 -p1 -b .network_cp_fix
 %patch26 -p1 -b .hidden_network_reorg
 %patch27 -p1 -b .hidden_network_persist
 %patch28 -p1 -b .backup
-%patch29 -p1 -b .backup_2
 %patch30 -p1 -b .hidden_network_3
+%patch31 -p1 -b .help_integration
+%patch32 -p1 -b .conf_webkit1
 
 %build
 # need run it again to include new files
