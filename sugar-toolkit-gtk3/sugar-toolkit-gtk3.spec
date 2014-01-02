@@ -3,15 +3,14 @@
 Summary: Sugar toolkit GTK+ 3
 Name:    sugar-toolkit-gtk3
 Version: 0.100
-Release: 3.olpcau
+Release: 4.olpcau
 URL:     http://wiki.laptop.org/go/Sugar
 Source0: sugar-toolkit-gtk3-0.100.tar
 
-# from sugar-toolkit-gtk3 master, last commit ee88193186b41bd734d5a1d53d580f1ec01f1de2
+# from sugar-toolkit-gtk3 master, last commit 93437ddedf68a2e1e6fc46bcc23b763e59dcf84a
 
 Source1: macros.sugar
-Patch0: 0001-Inhibit-suspend-while-a-activity-is-shared-OLPC-1036.patch
-Patch2: 0001-Adapt-webactivity-to-work-with-webkit1.patch
+Patch0: 0001-Inhibit-suspend-while-a-activity-is-shared.patch
 
 License: LGPLv2+
 Group:   System Environment/Libraries
@@ -57,8 +56,6 @@ the SugarExt-1.0 library through gobject-introspection.
 %prep
 %setup -q
 %patch0 -p1
-#%patch1 -p1
-%patch2 -p1
 
 %build
 ./autogen.sh

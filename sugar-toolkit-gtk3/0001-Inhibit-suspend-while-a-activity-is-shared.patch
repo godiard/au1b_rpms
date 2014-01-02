@@ -1,9 +1,9 @@
-From d23a510e1179fde91a1400fe236fa60487a21cd3 Mon Sep 17 00:00:00 2001
+From 17cdc5cefe91df1f6f1ec2b436c42a423a65eceb Mon Sep 17 00:00:00 2001
 From: Gonzalo Odiard <godiard@gmail.com>
-Date: Wed, 28 Aug 2013 12:48:47 -0300
-Subject: [PATCH] Inhibit suspend while a activity is shared - OLPC #10363
+Date: Fri, 27 Dec 2013 12:00:22 -0300
+Subject: [PATCH] Inhibit suspend while a activity is shared
 
-This patch is a port of the patch included in the ticket.
+This patch is a port of the patch included in the ticket OLPC #10363.
 
 Signed-off-by: Gonzalo Odiard <gonzalo@laptop.org>
 ---
@@ -11,10 +11,10 @@ Signed-off-by: Gonzalo Odiard <gonzalo@laptop.org>
  1 file changed, 23 insertions(+)
 
 diff --git a/src/sugar3/activity/activity.py b/src/sugar3/activity/activity.py
-index b0339ec..2f12a0a 100644
+index b3cb660..0594b8e 100644
 --- a/src/sugar3/activity/activity.py
 +++ b/src/sugar3/activity/activity.py
-@@ -94,6 +94,8 @@ J_DBUS_SERVICE = 'org.laptop.Journal'
+@@ -93,6 +93,8 @@ J_DBUS_SERVICE = 'org.laptop.Journal'
  J_DBUS_PATH = '/org/laptop/Journal'
  J_DBUS_INTERFACE = 'org.laptop.Journal'
  
@@ -41,9 +41,9 @@ index b0339ec..2f12a0a 100644
 +
      def __joined_cb(self, activity, success, err):
          """Callback when join has finished"""
-         logging.debug('Activity.__joined_cb %r', success)
+         logging.debug('Activity.__joined_cb %r' % success)
 @@ -783,6 +797,8 @@ class Activity(Window, Gtk.Container):
-             logging.debug('Failed to join activity: %s', err)
+             logging.debug('Failed to join activity: %s' % err)
              return
  
 +        self._inhibit_suspend()
