@@ -1,0 +1,10 @@
+--- dextrose-updater-5.ori/dextrose-updater	2013-12-09 15:10:43.051027054 -0300
++++ dextrose-updater-5/dextrose-updater	2014-01-09 11:55:53.050862537 -0300
+@@ -105,6 +105,7 @@
+ need_reboot=$(parse ${reboot_pkgs})
+ need_relogin=$(parse ${relogin_pkgs})
+ 
++/usr/bin/yum clean all
+ echo -e "\tPackages to update:" ${to_update} >> ${logfile}
+ ${yum} -y update >> ${logfile} 2>&1 || abort
+ to_update=$(updates)

@@ -1,6 +1,6 @@
 Name:	dextrose-updater	
 Version:	5
-Release:	6.olpcau%{?dist}
+Release:	9.olpcau%{?dist}
 Summary:	A yum based updater for sugar-dextrose. Updates the sugar-dextrose related packages automatically and emits dbus messages (for the sugar notification system, if installed)
 
 Group:		Applications/Updating
@@ -10,6 +10,7 @@ Source0:	%{name}-%{version}.tar.gz
 Patch0:     change_last_update_flag_file.diff
 Patch1:     networkmanager_hook.diff
 Patch2:     modify_yum_conf.diff
+Patch3:     clean_yum_caches.diff
 
 BuildRoot:	%(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
 
@@ -26,6 +27,7 @@ A yum based updater for sugar-dextrose. Updates the sugar-dextrose related packa
 %patch0 -p1 -b .flag_file
 %patch1 -p1 -b .networkmanager
 %patch2 -p1 -b .proxy
+%patch3 -p1 -b .clean_cache
 
 %build
 
@@ -33,9 +35,8 @@ A yum based updater for sugar-dextrose. Updates the sugar-dextrose related packa
 rm -rf $RPM_BUILD_ROOT
 
 make DESTDIR=%{buildroot} REPO="au1b-updates" install
+chmod 755 %{buildroot}/etc/NetworkManager/dispatcher.d/dextrose-updater-ifup
 
-%post
-chmod 755 /etc/NetworkManager/dispatcher.d/dextrose-updater-ifup
 
 %clean
 rm -rf $RPM_BUILD_ROOT
