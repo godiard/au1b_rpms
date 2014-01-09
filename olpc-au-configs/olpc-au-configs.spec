@@ -1,7 +1,7 @@
 Summary: Configs needed by the olpc-au image
 Name:    olpc-au-configs
 Version: 0.1
-Release: 1
+Release: 3
 URL:     https://www.laptop.org.au/
 License: LGPL
 Group:   User Interface/Desktops
@@ -36,7 +36,7 @@ cp -r %{_builddir}/%{name}-%{version}/* %{buildroot}
 export GCONF_CONFIG_SOURCE=`gconftool-2 --get-default-source`
 # Use microformat back end for updater
 gconftool-2 --direct --config-source xml:readwrite:/etc/gconf/gconf.xml.defaults \
-    --type string --set /desktop/sugar/update/backend microformat.microformat.MicroformatUpdater
+    --type string --set /desktop/sugar/update/backend microformat.MicroformatUpdater
 
 # microformat updater url to use.
 gconftool-2 --direct --config-source xml:readwrite:/etc/gconf/gconf.xml.defaults \
@@ -80,6 +80,8 @@ gconftool-2 --direct --config-source xml:readwrite:/etc/gconf/gconf.xml.defaults
     --type string -s /desktop/sugar/collaboration/harvest_api_key V9iIS8EBC7Aho2EDeeKCg7K9QB8Ue9K4
 gconftool-2 --direct --config-source xml:readwrite:/etc/gconf/gconf.xml.defaults \
     --type string -s /desktop/sugar/collaboration/harvest_hostname https://harvest.one-education.org
+gconftool-2 --direct --config-source xml:readwrite:/etc/gconf/gconf.xml.defaults \
+    --type boolean -s /desktop/sugar/collaboration/harvest_editable false
 
 # hide Register menu in Sugar
 gconftool-2 --direct --config-source=xml:readwrite:/etc/gconf/gconf.xml.defaults \
