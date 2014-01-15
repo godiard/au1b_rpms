@@ -1,4 +1,4 @@
-From 30ee58cbd42ee2bf75c99fb30f6bf946bf8f8bee Mon Sep 17 00:00:00 2001
+From c5769fba4eefe278e8164b0f5433dbf1becc4d1c Mon Sep 17 00:00:00 2001
 From: Gonzalo Odiard <godiard@gmail.com>
 Date: Fri, 27 Dec 2013 17:57:41 -0300
 Subject: [PATCH] Activity Help integration
@@ -8,9 +8,9 @@ This patch is a little different because apply in AU1B branch
  extensions/globalkey/Makefile.am |   3 +-
  extensions/globalkey/viewhelp.py |  27 +++++
  src/jarabe/view/Makefile.am      |   3 +-
- src/jarabe/view/palettes.py      |  12 +++
- src/jarabe/view/viewhelp.py      | 219 +++++++++++++++++++++++++++++++++++++++
- 5 files changed, 262 insertions(+), 2 deletions(-)
+ src/jarabe/view/palettes.py      |  12 ++
+ src/jarabe/view/viewhelp.py      | 236 +++++++++++++++++++++++++++++++++++++++
+ 5 files changed, 279 insertions(+), 2 deletions(-)
  create mode 100644 extensions/globalkey/viewhelp.py
  create mode 100644 src/jarabe/view/viewhelp.py
 
@@ -108,10 +108,10 @@ index 5a9b72d..03d71ed 100644
          self.emit('done')
 diff --git a/src/jarabe/view/viewhelp.py b/src/jarabe/view/viewhelp.py
 new file mode 100644
-index 0000000..007d2a9
+index 0000000..47e2f5f
 --- /dev/null
 +++ b/src/jarabe/view/viewhelp.py
-@@ -0,0 +1,219 @@
+@@ -0,0 +1,236 @@
 +# Copyright (C) 2013 Kalpa Welivitigoda
 +#
 +# This program is free software; you can redistribute it and/or modify
@@ -149,7 +149,7 @@ index 0000000..007d2a9
 +_logger = logging.getLogger('ViewHelp')
 +
 +# get the activity path
-+activity_path = env.get_user_activities_path()
++activities_path = env.get_user_activities_path()
 +
 +
 +def get_help_url_and_title(activity):
@@ -176,7 +176,7 @@ index 0000000..007d2a9
 +        link_id = activity_bundle.get_bundle_id()
 +
 +    # get the help file name for the activity
-+    help_content_link = os.path.join(activity_path,
++    help_content_link = os.path.join(activities_path,
 +                                     'Help.activity/helplink.json')
 +    if not os.path.exists(help_content_link):
 +        _logger.error('Help activity not installed or json file not found')
@@ -278,11 +278,28 @@ index 0000000..007d2a9
 +        return locale.split('.')[0].split('_')[0].lower()
 +
 +    def get_help_file(self, language, help_file):
-+        path = os.path.join(activity_path, 'Help.activity/html/',
-+                            language, help_file)
++        # check if exist a page for the language selected
++        # if not, use the default page
++        help_activity_path = os.path.join(activities_path, 'Help.activity/')
++        path = os.path.join(help_activity_path, 'html', language, help_file)
 +        if not os.path.isfile(path):
-+            path = os.path.join(activity_path,
-+                                'Help.activity/html/', help_file)
++            path = os.path.join(help_activity_path, 'html', help_file)
++
++        # verify if the images and _static dir exists
++        # html have only one directory for images and static content,
++        # and need links in other languages directories
++        # the links are created by the Help activity or the viewer
++        # in the first run.
++        html_path = path[:path.rfind('/')]
++        images_path = os.path.join(html_path, '_images')
++        if not os.path.exists(images_path):
++            os.symlink(os.path.join(help_activity_path, 'images'),
++                       images_path)
++        static_path = os.path.join(html_path, '_static')
++        if not os.path.exists(static_path):
++            os.symlink(os.path.join(help_activity_path, 'html', '_static'),
++                       static_path)
++
 +        return path
 +
 +
