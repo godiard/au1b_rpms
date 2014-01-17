@@ -70,12 +70,12 @@ index eff6473..bcabcb8 100644
 +
 +    birth_age = calculate_age(birth_timestamp)
 +
-+    age = (AGES[-2] + AGES[-1]) / 2
++    age = (AGES[-2] + AGES[-1]) / 2.
 +    if birth_age >= age:
 +        return AGES[-1]
 +    
 +    for i in range(len(AGES) - 1):
-+        age = (AGES[i] + AGES[i + 1]) / 2
++        age = (AGES[i] + AGES[i + 1]) / 2.
 +        if birth_age < age:
 +            return AGES[i]
 +
