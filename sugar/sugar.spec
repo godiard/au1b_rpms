@@ -21,11 +21,9 @@ Patch14: 0001-Add-section-to-configure-hidden-networks.patch
 Patch15: 0001-Implement-configuration-of-proxy-using-profile-files.patch
 Patch16: 0002-Make-combo-in-proxy-selection-more-generic.patch
 Patch17: 0003-Ask-in-the-newtwork-panel-options-based-on-connectiv.patch
-Patch18: 0004-Connect-to-a-hidden-network-using-a-profile.patch
+Patch18: 0001-Connect-to-a-hidden-network-using-a-profile.patch
 Patch19: 0001-Add-teacher-webservice.patch
-Patch20: 0001-Small-fixes-to-Connect-to-a-hidden-network-using-a-p.patch
 Patch23: 0001-Stop-all-the-activities-if-tried-to-shutdown-after-3.patch
-Patch25: 0001-Avoid-error-in-network-cp-section-write-profile.patch
 
 Patch26: 0001-Move-class-HiddenNetworkManager-to-network.py.patch
 Patch27: 0002-Persist-the-parameters-loaded-by-the-user-in-the-net.patch
@@ -193,9 +191,7 @@ This is the Sugar Web Services. Right now, only Teacher.
 %patch17 -p1 -b .hidden_profile
 %patch18 -p1 -b .hidden_profile2
 %patch19 -p1 -b .teacher_webser
-%patch20 -p1 -b .hidden_profile3
 %patch23 -p1 -b .fix_sugar_stop
-%patch25 -p1 -b .network_cp_fix
 %patch26 -p1 -b .hidden_network_reorg
 %patch27 -p1 -b .hidden_network_persist
 %patch28 -p1 -b .backup

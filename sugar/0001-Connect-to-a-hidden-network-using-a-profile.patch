@@ -1,32 +1,105 @@
-From 458c453a24d289011a13b18fa768166306481317 Mon Sep 17 00:00:00 2001
+From 39531e2f6b81ef48e7e484276ca4cd5d67104bfc Mon Sep 17 00:00:00 2001
 From: Gonzalo Odiard <godiard@gmail.com>
 Date: Mon, 23 Sep 2013 17:37:01 -0300
-Subject: [PATCH 4/4] Connect to a hidden network using a profile
+Subject: [PATCH] Connect to a hidden network using a profile
+
+This patch already include the fixes in
+0001-Small-fixes-to-Connect-to-a-hidden-network-using-a-p.patch
+and 0001-Avoid-error-in-network-cp-section-write-profile.patch
 
 Signed-off-by: Gonzalo Odiard <gonzalo@laptop.org>
 ---
- extensions/cpsection/network/model.py | 85 ++++++++++++++++++++++++++++-------
- extensions/cpsection/network/view.py  | 75 ++++++++++++++++++++++---------
- src/jarabe/desktop/networkviews.py    | 12 ++++-
- src/jarabe/model/network.py           | 23 +++++++++-
- 4 files changed, 155 insertions(+), 40 deletions(-)
+ extensions/cpsection/network/model.py | 101 ++++++++++++++++++++++++++++------
+ extensions/cpsection/network/view.py  |  76 +++++++++++++++++--------
+ src/jarabe/desktop/networkviews.py    |  12 +++-
+ src/jarabe/model/network.py           |  23 +++++++-
+ 4 files changed, 170 insertions(+), 42 deletions(-)
 
 diff --git a/extensions/cpsection/network/model.py b/extensions/cpsection/network/model.py
-index 5f909db..6796421 100644
+index 5f909db..12adbb6 100644
 --- a/extensions/cpsection/network/model.py
 +++ b/extensions/cpsection/network/model.py
-@@ -253,6 +253,7 @@ class HiddenNetworkManager():
+@@ -216,6 +216,8 @@ def get_proxy_profile_name():
+ 
+ 
+ def set_proxy_profile_name(profile_name):
++    if profile_name is None:
++        profile_name = ''
+     client = GConf.Client.get_default()
+     client.set_string('/desktop/sugar/network/proxy/profile_name',
+                       profile_name)
+@@ -235,6 +237,7 @@ class HiddenNetworkManager():
+         self.enabled = client.get_bool(
+             '/desktop/sugar/extensions/network/conf_hidden_ssid')
+         if not self.enabled:
++            logging.debug('Hidden network configuration disabled')
+             return
+         try:
+             self._bus = dbus.SystemBus()
+@@ -248,13 +251,16 @@ class HiddenNetworkManager():
+ 
+         # get the list of connectivity profiles of type "connectivity"
+         self.network_profiles = []
+-        logging.error('profiles %s', conn_profiles)
++        logging.debug('profiles %s', conn_profiles)
+         for profile_key in conn_profiles:
              profile = conn_profiles[profile_key]
              if profile['type'] == 'connectivity':
                  self.network_profiles.append(profile)
 +        self.selected_profile = None
  
      def __get_devices_reply_cb(self, devices_o):
++        logging.debug('__get_devices_reply_cb len(devices) = %d',
++                      len(devices_o))
          for dev_o in devices_o:
-@@ -297,23 +298,75 @@ class HiddenNetworkManager():
-                 connection.get_path(),
-                 self._active_device, '/')
+             self._check_device(dev_o)
  
+@@ -262,12 +268,14 @@ class HiddenNetworkManager():
+         logging.error('Failed to get devices: %s', err)
+ 
+     def _check_device(self, device_o):
++        logging.debug('_check_device %s', device_o)
+         device = self._bus.get_object(network.NM_SERVICE, device_o)
+         props = dbus.Interface(device, dbus.PROPERTIES_IFACE)
+-
+         device_type = props.Get(network.NM_DEVICE_IFACE, 'DeviceType')
++        logging.debug('device_type = %s', device_type)
+         if device_type == network.NM_DEVICE_TYPE_WIFI:
+             state = props.Get(network.NM_DEVICE_IFACE, 'State')
++            logging.debug('state %s', state)
+             if state == 100:  # Activated
+                 self._active_device = device_o
+ 
+@@ -275,17 +283,89 @@ class HiddenNetworkManager():
+         logging.error('Failed to get device type: %s', err)
+ 
+     def create_and_connect_by_ssid(self, ssid):
++        logging.debug('create_and_connect_by_ssid ssid=%s', ssid)
+         connection = network.find_connection_by_ssid(ssid)
+         if connection is None:
++            logging.error('connection is None')
+             # Th connection do not exists
+             settings = network.Settings()
+             settings.connection.id = ssid
+             settings.connection.type = \
+                 network.NM_CONNECTION_TYPE_802_11_WIRELESS
+             settings.connection.uuid = str(uuid.uuid4())
++            settings.connection.autoconnect = True
+ 
+             settings.wireless.ssid = dbus.ByteArray(ssid)
+             settings.wireless.hidden = True
++            logging.debug('AddAndActivateConnection')
++            self._netmgr.AddAndActivateConnection(
++                settings.get_dict(),
++                self._active_device, '/',
++                reply_handler=self._add_connection_reply_cb,
++                error_handler=self._add_connection_error_cb)
++        else:
++            logging.debug('ActivateConnection')
++            self._netmgr.ActivateConnection(
++                connection.get_path(),
++                self._active_device, '/')
++
 +    def create_and_connect_by_profile(self):
 +        """
 +        A profile is a dictionary with a format like this
@@ -55,6 +128,7 @@ index 5f909db..6796421 100644
 +            settings.connection.id = profile['connection.id']
 +            settings.connection.type = profile['connection.type']
 +            settings.connection.uuid = str(uuid.uuid4())
++            settings.connection.autoconnect = True
 +
 +            settings.wireless.ssid = dbus.ByteArray(
 +                profile['802-11-wireless.ssid'])
@@ -83,17 +157,10 @@ index 5f909db..6796421 100644
 +                settings.ip4_config.method = profile['ipv4.method']
 +
 +            logging.error('createby_profile %s', settings.get_dict())
-+
-+            self._netmgr.AddAndActivateConnection(
-+                settings.get_dict(),
-+                self._active_device, '/',
-+                reply_handler=self._add_connection_reply_cb,
-+                error_handler=self._add_connection_error_cb)
-+        else:
-+            self._netmgr.ActivateConnection(
-+                connection.get_path(),
-+                self._active_device, '/')
-+
+ 
+             self._netmgr.AddAndActivateConnection(
+                 settings.get_dict(),
+@@ -300,20 +380,5 @@ class HiddenNetworkManager():
      def _add_connection_reply_cb(self, netmgr, connection):
          logging.debug('Added connection: %s', connection)
  
@@ -116,7 +183,7 @@ index 5f909db..6796421 100644
 -        if ssid != '':
 -            self.create_and_connect_by_ssid(ssid)
 diff --git a/extensions/cpsection/network/view.py b/extensions/cpsection/network/view.py
-index 9ecc722..8055a30 100644
+index 9ecc722..574cd6a 100644
 --- a/extensions/cpsection/network/view.py
 +++ b/extensions/cpsection/network/view.py
 @@ -439,12 +439,23 @@ class Network(SectionView):
@@ -153,7 +220,7 @@ index 9ecc722..8055a30 100644
                      count = count + 1
                  box.show_all()
  
-@@ -492,27 +504,28 @@ class Network(SectionView):
+@@ -492,26 +504,28 @@ class Network(SectionView):
                  index = len(option_sets) - 1
                  network_profiles_index[network_profile['title']] = index
  
@@ -166,7 +233,6 @@ index 9ecc722..8055a30 100644
 -        name_box = SettingBox(_("Name"), size_group)
 -        name_box.show()
 +        box_mode = ComboSettingBox(_('Mode:'), option_sets, size_group)
-+        box_mode.connect('changed', self._select_hidden_network_profile)
 +        box_mode.combo_box.set_active(0)
  
 -        self._hidden_network_name_entry = Gtk.Entry()
@@ -182,7 +248,9 @@ index 9ecc722..8055a30 100644
          self._hidden_network_params_box.show()
          box_hidden_network.pack_start(self._hidden_network_params_box, False,
                                        False, 0)
- 
++        # _select_hidden_network_profile need the box already created
++        box_mode.connect('changed', self._select_hidden_network_profile)
++
 +        # show the widgets for the default mode
 +        self._select_hidden_network_profile(box_mode)
 +
@@ -192,11 +260,10 @@ index 9ecc722..8055a30 100644
 +        btn_box.pack_start(create_connection_btn, False, False, 0)
 +        box_hidden_network.pack_start(btn_box, False, False, 0)
 +        btn_box.show_all()
-+
+ 
          workspace.pack_start(box_hidden_network, False, False, 0)
          box_hidden_network.show()
- 
-@@ -525,8 +538,30 @@ class Network(SectionView):
+@@ -525,8 +539,30 @@ class Network(SectionView):
  
          self._hidden_network_params_box.add(new_box)
          new_box.show()
@@ -229,7 +296,7 @@ index 9ecc722..8055a30 100644
  
      def _add_proxy_section(self, workspace):
          separator_hidden_network = Gtk.HSeparator()
-@@ -805,10 +840,6 @@ class Network(SectionView):
+@@ -805,10 +841,6 @@ class Network(SectionView):
              setting.apply()
          self._model.set_proxy_profile_name(self._proxy_profile_name)
  
