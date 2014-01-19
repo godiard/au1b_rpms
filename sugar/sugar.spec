@@ -32,6 +32,9 @@ Patch30: 0001-Connect-to-hidden-network-if-needed-at-cp-section-cl.patch
 Patch31: 0001-Activity-Help-integration.patch
 Patch32: 0001-Set-env-variable-to-request-use-webkit1.patch
 
+Patch40: 0001-Fix-missing-options-in-batch-copy-palette.patch
+Patch41: 0001-Fix-error-while-trying-to-open-journal-palette.-Fixe.patch
+
 BuildRequires: gettext
 BuildRequires: GConf2-devel
 BuildRequires: gobject-introspection
@@ -198,6 +201,8 @@ This is the Sugar Web Services. Right now, only Teacher.
 %patch30 -p1 -b .hidden_network_3
 %patch31 -p1 -b .help_integration
 %patch32 -p1 -b .conf_webkit1
+%patch40 -p1 -b .missing_batch_options
+%patch41 -p1 -b .error_open_palette
 
 %build
 # need run it again to include new files

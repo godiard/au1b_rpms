@@ -1,0 +1,29 @@
+From 5c00d7816d6555d2308d5da14bf9b00a53f3251f Mon Sep 17 00:00:00 2001
+From: Gonzalo Odiard <godiard@gmail.com>
+Date: Thu, 16 Jan 2014 17:19:30 -0300
+Subject: [PATCH] Fix error while trying to open journal palette. Fixes #4637
+
+As explained in [1] pygobject is confused by methods
+returning a tuple. Use a array is a workaround.
+
+[1] https://bugzilla.gnome.org/show_bug.cgi?id=689277#c5
+---
+ src/jarabe/journal/listmodel.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/jarabe/journal/listmodel.py b/src/jarabe/journal/listmodel.py
+index d79eda9..2177fbd 100644
+--- a/src/jarabe/journal/listmodel.py
++++ b/src/jarabe/journal/listmodel.py
+@@ -208,7 +208,7 @@ class ListModel(GObject.GObject, Gtk.TreeModel, Gtk.TreeDragSource):
+                     logging.warning('Malformed buddies for %r: %s',
+                                     metadata['uid'], exception)
+                 else:
+-                    self._cached_row.append((nick, XoColor(color)))
++                    self._cached_row.append([nick, XoColor(color)])
+                     continue
+ 
+             self._cached_row.append(None)
+-- 
+1.8.3.1
+
