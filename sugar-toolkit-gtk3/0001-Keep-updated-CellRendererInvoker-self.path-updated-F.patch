@@ -1,0 +1,39 @@
+From 353e05a08657c862ce78912aed0ce0d07ba44cb8 Mon Sep 17 00:00:00 2001
+From: Gonzalo Odiard <godiard@gmail.com>
+Date: Fri, 17 Jan 2014 15:22:34 -0300
+Subject: [PATCH] Keep updated CellRendererInvoker self.path updated - Fixes
+ #4717
+
+Since CellRendererInvoker can set the path at None if a mouse event
+is out of the area of the renderer, can break the use of touch,
+if happen after the mouse movement. This patch set the path,
+in the point_in_cell_renderer test, for the positive case,
+solving the issue.
+
+Signed-off-by: Gonzalo Odiard <godiard@sugarlabs.org>
+---
+ src/sugar3/graphics/palettewindow.py | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/src/sugar3/graphics/palettewindow.py b/src/sugar3/graphics/palettewindow.py
+index dc8073e..9b337e6 100644
+--- a/src/sugar3/graphics/palettewindow.py
++++ b/src/sugar3/graphics/palettewindow.py
+@@ -1487,12 +1487,13 @@ class CellRendererInvoker(Invoker):
+         if pos is None:
+             return False
+ 
+-        path_, column, x, y_ = pos
++        path, column, x, y_ = pos
+ 
+         for cell_renderer in column.get_cells():
+             if cell_renderer == self._cell_renderer:
+                 cell_x, cell_width = column.cell_get_position(cell_renderer)
+                 if x > cell_x and x < (cell_x + cell_width):
++                    self.path = path
+                     return True
+                 return False
+ 
+-- 
+1.8.3.1
+

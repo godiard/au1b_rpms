@@ -11,6 +11,7 @@ Source0: sugar-toolkit-gtk3-0.100.tar
 
 Source1: macros.sugar
 Patch0: 0001-Inhibit-suspend-while-a-activity-is-shared.patch
+Patch1: 0001-Keep-updated-CellRendererInvoker-self.path-updated-F.patch
 
 License: LGPLv2+
 Group:   System Environment/Libraries
@@ -56,6 +57,7 @@ the SugarExt-1.0 library through gobject-introspection.
 %prep
 %setup -q
 %patch0 -p1
+%patch1 -p1
 
 %build
 ./autogen.sh
