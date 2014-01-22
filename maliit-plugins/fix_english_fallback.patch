@@ -1,0 +1,186 @@
+From b5b253c916f1651849a88cd2005f10a9fbc946bb Mon Sep 17 00:00:00 2001
+From: Martin Abente Lahaye <tch@sugarlabs.org>
+Date: Wed, 15 Jan 2014 10:39:29 -0300
+Subject: [PATCH] Fix arabic fallback language for Australian English
+
+Because of the new fallback policy, some languages where
+falling back to the first available language. Arabic in
+present version.
+
+This was due to the fact that there were no "en_AU" nor "en"
+languages xml files available.
+
+Add a en.xml language file, so English languages can safety
+fallback to it.
+
+Signed-off-by: Martin Abente Lahaye <tch@sugarlabs.org>
+---
+ maliit-keyboard/data/languages/en.xml | 156 ++++++++++++++++++++++++++++++++++
+ 1 file changed, 156 insertions(+)
+ create mode 100644 maliit-keyboard/data/languages/en.xml
+
+diff --git a/maliit-keyboard/data/languages/en.xml b/maliit-keyboard/data/languages/en.xml
+new file mode 100644
+index 0000000..e4ce6dd
+--- /dev/null
++++ b/maliit-keyboard/data/languages/en.xml
+@@ -0,0 +1,156 @@
++<?xml version="1.0" encoding="utf-8"?>
++<!DOCTYPE keyboard SYSTEM 'VirtualKeyboardLayout.dtd'>
++<keyboard title="English" version="1.0" catalog="en" language="en">
++  <layout type="general">
++    <section id="main">
++      <row>
++        <key>
++          <binding label="q"/>
++          <binding shift="true" label="Q"/>
++        </key>
++        <key>
++          <binding label="w"/>
++          <binding shift="true" label="W"/>
++        </key>
++        <key>
++          <binding label="e" extended_labels="èéêë€"/>
++          <binding shift="true" label="E" extended_labels="ÈÉÊË€"/>
++        </key>
++        <key>
++          <binding label="r"/>
++          <binding shift="true" label="R"/>
++        </key>
++        <key>
++          <binding label="t" extended_labels="þ"/>
++          <binding shift="true" label="T" extended_labels="Þ"/>
++        </key>
++        <key>
++          <binding label="y" extended_labels="ý¥"/>
++          <binding shift="true" label="Y" extended_labels="Ý¥"/>
++        </key>
++        <key>
++          <binding label="u" extended_labels="ûùúü"/>
++          <binding shift="true" label="U" extended_labels="ÛÙÚÜ"/>
++        </key>
++        <key>
++          <binding label="i" extended_labels="îïìí"/>
++          <binding shift="true" label="I" extended_labels="ÎÏÌÍ"/>
++        </key>
++        <key>
++          <binding label="o" extended_labels="öôòó"/>
++          <binding shift="true" label="O" extended_labels="ÖÔÒÓ"/>
++        </key>
++        <key>
++          <binding label="p"/>
++          <binding shift="true" label="P"/>
++        </key>
++        <key style="special">
++          <binding action="backspace"/>
++        </key>
++      </row>
++
++      <row>
++        <spacer/>
++
++        <key>
++          <binding label="a" extended_labels="äàâáãå"/>
++          <binding shift="true" label="A" extended_labels="ÄÀÂÁÃÅ"/>
++        </key>
++        <key>
++          <binding label="s" extended_labels="ß$"/>
++          <binding shift="true" label="S" extended_labels="$"/>
++        </key>
++        <key>
++          <binding label="d" extended_labels="ð"/>
++          <binding shift="true" label="D" extended_labels="Ð"/>
++        </key>
++        <key>
++          <binding label="f"/>
++          <binding shift="true" label="F"/>
++        </key>
++        <key>
++          <binding label="g"/>
++          <binding shift="true" label="G"/>
++        </key>
++        <key>
++          <binding label="h"/>
++          <binding shift="true" label="H"/>
++        </key>
++        <key>
++          <binding label="j"/>
++          <binding shift="true" label="J"/>
++        </key>
++        <key>
++          <binding label="k"/>
++          <binding shift="true" label="K"/>
++        </key>
++        <key>
++          <binding label="l"/>
++          <binding shift="true" label="L"/>
++        </key>
++        <key style="special" width="large" id="actionKey">
++          <binding action="return"/>
++        </key>
++
++        <spacer/>
++      </row>
++
++      <row>
++        <key style="special">
++          <binding action="shift"/>
++        </key>
++
++        <key>
++          <binding label="z"/>
++          <binding shift="true" label="Z"/>
++        </key>
++        <key>
++          <binding label="x"/>
++          <binding shift="true" label="X"/>
++        </key>
++        <key>
++          <binding label="c" extended_labels="ç"/>
++          <binding shift="true" label="C" extended_labels="Ç"/>
++        </key>
++        <key>
++          <binding label="v"/>
++          <binding shift="true" label="V"/>
++        </key>
++        <key>
++          <binding label="b"/>
++          <binding shift="true" label="B"/>
++        </key>
++        <key>
++          <binding label="n" extended_labels="ñ"/>
++          <binding shift="true" label="N" extended_labels="Ñ"/>
++        </key>
++        <key>
++          <binding label="m"/>
++          <binding shift="true" label="M"/>
++        </key>
++        <key id="emailUrlKey"><binding label=","/></key>
++        <key><binding label="."/></key>
++        <key style="special">
++          <binding action="shift"/>
++        </key>
++
++      </row>
++
++      <row>
++        <key style="special">
++          <binding action="right-layout"/>
++        </key>
++        <key style="special" width="large">
++          <binding action="sym" label="?123"/>
++        </key>
++        <key width="stretched"><binding action="space"/></key>
++        <key style="special" width="large">
++          <binding action="sym" label="?123"/>
++        </key>
++        <key style="special"><binding action="close"/></key>
++      </row>
++    </section>
++  </layout>
++
++  <import file="symbols_en.xml"/>
++</keyboard>
+-- 
+1.8.3.1
+
