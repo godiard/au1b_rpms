@@ -1,0 +1,64 @@
+From edb32e9ae4378bbbf77358c3d3b3ca7032b5ae82 Mon Sep 17 00:00:00 2001
+From: Gonzalo Odiard <godiard@gmail.com>
+Date: Wed, 12 Feb 2014 13:05:21 -0300
+Subject: [PATCH] Microformat updater: set cache header
+
+wiki.laptop.org, where the pages used to update the activities are
+located, usually serve old cached pages. We can avoid that
+setting the header Cache-Control' = 'max-age=600',
+to have a 10 mins live in the cache.
+
+Signed-off-by: Gonzalo Odiard <godiard@sugarlabs.org>
+---
+ src/jarabe/model/update/microformat.py | 4 +++-
+ src/jarabe/util/downloader.py          | 7 ++++++-
+ 2 files changed, 9 insertions(+), 2 deletions(-)
+
+diff --git a/src/jarabe/model/update/microformat.py b/src/jarabe/model/update/microformat.py
+index 12e6a48..e061f40 100644
+--- a/src/jarabe/model/update/microformat.py
++++ b/src/jarabe/model/update/microformat.py
+@@ -178,7 +178,9 @@ class MicroformatUpdater(object):
+             return
+ 
+         self._parser = _UpdateHTMLParser(url)
+-        downloader = Downloader(url)
++        # wiki.laptop.org have agresive cache
++        request_headers = {'Cache-Control': 'max-age=600'}
++        downloader = Downloader(url, request_headers=request_headers)
+         downloader.connect('got-chunk', self._got_chunk_cb)
+         downloader.connect('complete', self._complete_cb)
+         downloader.download_chunked()
+diff --git a/src/jarabe/util/downloader.py b/src/jarabe/util/downloader.py
+index f8a1328..db845f6 100644
+--- a/src/jarabe/util/downloader.py
++++ b/src/jarabe/util/downloader.py
+@@ -59,7 +59,7 @@ class Downloader(GObject.GObject):
+                      (object,)),
+     }
+ 
+-    def __init__(self, url, session=None):
++    def __init__(self, url, session=None, request_headers=None):
+         GObject.GObject.__init__(self)
+         self._uri = Soup.URI.new(url)
+         self._session = session or get_soup_session()
+@@ -71,11 +71,16 @@ class Downloader(GObject.GObject):
+         self._output_file = None
+         self._output_stream = None
+         self._message = None
++        self._request_headers = request_headers
+ 
+     def _setup_message(self, method="GET"):
+         self._message = Soup.Message(method=method, uri=self._uri)
+         self._message.connect('got-chunk', self._got_chunk_cb)
+         self._message.connect('got-headers', self._headers_cb, None)
++        if self._request_headers is not None:
++            for header_key in self._request_headers.keys():
++                self._message.request_headers.append(
++                    header_key, self._request_headers[header_key])
+ 
+     def download_to_temp(self):
+         """
+-- 
+1.8.1.4
+

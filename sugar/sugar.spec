@@ -3,7 +3,7 @@
 Summary: Constructionist learning platform
 Name:    sugar
 Version: 0.100.1
-Release: 6.olpcau
+Release: 8.olpcau
 URL:     http://sugarlabs.org/
 License: GPLv2+
 Group:   User Interface/Desktops
@@ -34,6 +34,8 @@ Patch32: 0001-Set-env-variable-to-request-use-webkit1.patch
 
 Patch40: 0001-Fix-missing-options-in-batch-copy-palette.patch
 Patch41: 0001-Fix-error-while-trying-to-open-journal-palette.-Fixe.patch
+Patch42: 0001-Microformat-updater-set-cache-header.patch
+Patch43: 0001-Hide-the-password-in-the-cp-network-proxy-section.patch
 
 BuildRequires: gettext
 BuildRequires: GConf2-devel
@@ -203,6 +205,8 @@ This is the Sugar Web Services. Right now, only Teacher.
 %patch32 -p1 -b .conf_webkit1
 %patch40 -p1 -b .missing_batch_options
 %patch41 -p1 -b .error_open_palette
+%patch42 -p1 -b .microformat_cache
+%patch43 -p1 -b .hide_password
 
 %build
 # need run it again to include new files
