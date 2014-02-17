@@ -1,7 +1,7 @@
 Summary: Configs needed by the olpc-au image
 Name:    olpc-au-configs
 Version: 0.1
-Release: 3
+Release: 4
 URL:     https://www.laptop.org.au/
 License: LGPL
 Group:   User Interface/Desktops
@@ -96,5 +96,9 @@ gconftool-2 --direct --config-source=xml:readwrite:/etc/gconf/gconf.xml.defaults
     -s -t bool /desktop/sugar/show_register false
 
 %changelog
+* Mon Feb 17 2014 Martin Abente Lahaye <tch@sugarlabs.org> 0.1-4
+- add boot animation customs
+- add training server configs
+
 * Mon Dec 30 2013 Gonzalo Odiard <gonzalo@laptop.org> 0.1-0
 - 0.1 devel release
