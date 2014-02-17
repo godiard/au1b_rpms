@@ -19,6 +19,7 @@ This package provide configs needed by the olpc-au image, like:
 * Font configs
 * Network profiles
 * Font license file
+* Boot animation customs
 
 %prep
 %setup -q
@@ -31,6 +32,7 @@ cp -r %{_builddir}/%{name}-%{version}/* %{buildroot}
 %files
 %{_sysconfdir}/*
 %{_datadir}/sugar/licenses/*
+%{_datadir}/plymouth/themes/olpc/custom.png
 
 %post
 export GCONF_CONFIG_SOURCE=`gconftool-2 --get-default-source`
