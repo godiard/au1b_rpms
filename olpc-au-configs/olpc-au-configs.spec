@@ -85,6 +85,12 @@ gconftool-2 --direct --config-source xml:readwrite:/etc/gconf/gconf.xml.defaults
 gconftool-2 --direct --config-source xml:readwrite:/etc/gconf/gconf.xml.defaults \
     --type boolean -s /desktop/sugar/collaboration/harvest_editable false
 
+# Training server configuration
+gconftool-2 --direct --config-source xml:readwrite:/etc/gconf/gconf.xml.defaults \
+    --type string -s /desktop/sugar/services/training/url https://training.one-education.org/training/report
+gconftool-2 --direct --config-source xml:readwrite:/etc/gconf/gconf.xml.defaults \
+    --type string -s /desktop/sugar/services/training/api_key SbCeK4nH8dpQJsHNn9djza9g
+
 # hide Register menu in Sugar
 gconftool-2 --direct --config-source=xml:readwrite:/etc/gconf/gconf.xml.defaults \
     -s -t bool /desktop/sugar/show_register false
