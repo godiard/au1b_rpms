@@ -1,0 +1,147 @@
+From 93dd443f3a8eeb5b88ec87025c06d46b6be42c3f Mon Sep 17 00:00:00 2001
+From: Gonzalo Odiard <godiard@gmail.com>
+Date: Mon, 17 Feb 2014 12:42:14 -0300
+Subject: [PATCH] Show a error message if the activity updater can't connect to
+ the server
+
+Without this patch, the updater show a message
+'Your software is up-to-date', when can't connect to the server.
+
+Signed-off-by: Gonzalo Odiard <godiard@sugarlabs.org>
+---
+ extensions/cpsection/updater/view.py   | 24 +++++++++++++++++-------
+ src/jarabe/model/update/aslo.py        |  3 ++-
+ src/jarabe/model/update/microformat.py |  5 +++--
+ src/jarabe/model/update/updater.py     | 10 +++++++++-
+ 4 files changed, 31 insertions(+), 11 deletions(-)
+
+diff --git a/extensions/cpsection/updater/view.py b/extensions/cpsection/updater/view.py
+index 071fe46..b6f34f9 100644
+--- a/extensions/cpsection/updater/view.py
++++ b/extensions/cpsection/updater/view.py
+@@ -41,6 +41,7 @@ class ActivityUpdater(SectionView):
+         self._model = updater.get_instance()
+         self._model.connect('progress', self.__progress_cb)
+         self._model.connect('updates-available', self.__updates_available_cb)
++        self._model.connect('error', self.__error_cb)
+         self._model.connect('finished', self.__finished_cb)
+ 
+         self.set_spacing(style.DEFAULT_SPACING)
+@@ -57,15 +58,15 @@ class ActivityUpdater(SectionView):
+         self.pack_start(separator, False, True, 0)
+         separator.show()
+ 
+-        bottom_label = Gtk.Label()
+-        bottom_label.set_line_wrap(True)
+-        bottom_label.set_justify(Gtk.Justification.LEFT)
+-        bottom_label.props.xalign = 0
+-        bottom_label.set_markup(
++        self._bottom_label = Gtk.Label()
++        self._bottom_label.set_line_wrap(True)
++        self._bottom_label.set_justify(Gtk.Justification.LEFT)
++        self._bottom_label.props.xalign = 0
++        self._bottom_label.set_markup(
+             _('Software updates correct errors, eliminate security '
+               'vulnerabilities, and provide new features.'))
+-        self.pack_start(bottom_label, False, True, 0)
+-        bottom_label.show()
++        self.pack_start(self._bottom_label, False, True, 0)
++        self._bottom_label.show()
+ 
+         self._update_box = None
+         self._progress_pane = None
+@@ -165,6 +166,15 @@ class ActivityUpdater(SectionView):
+         else:
+             self._switch_to_update_box(updates)
+ 
++    def __error_cb(self, model, updates):
++        logging.debug('ActivityUpdater.__error_cb')
++        top_message = _('Can\'t connect to the activity server.')
++        self._top_label.set_markup('<big>%s</big>' % top_message)
++        self._bottom_label.set_markup(
++            _('Verify your connection to internet and try again, '
++              'or try again later'))
++        self._clear_center()
++
+     def __refresh_button_clicked_cb(self, button):
+         self._refresh()
+ 
+diff --git a/src/jarabe/model/update/aslo.py b/src/jarabe/model/update/aslo.py
+index 45b5646..74d90ef 100644
+--- a/src/jarabe/model/update/aslo.py
++++ b/src/jarabe/model/update/aslo.py
+@@ -182,9 +182,10 @@ class AsloUpdater(object):
+         self._checker.check(bundle)
+ 
+     def fetch_update_info(self, installed_bundles, auto, progress_cb,
+-                          completion_cb):
++                          completion_cb, error_cb):
+         self._completion_cb = completion_cb
+         self._progress_cb = progress_cb
++        self._error_cb = error_cb
+         self._cancelling = False
+         self._updates = []
+         self._bundles_to_check = installed_bundles
+diff --git a/src/jarabe/model/update/microformat.py b/src/jarabe/model/update/microformat.py
+index 803524c..1dd785b 100644
+--- a/src/jarabe/model/update/microformat.py
++++ b/src/jarabe/model/update/microformat.py
+@@ -193,7 +193,7 @@ class MicroformatUpdater(object):
+     def _complete_cb(self, downloader, result):
+         if isinstance(result, Exception):
+             _logger.warning("Failed to read update info: %s", result)
+-            self._completion_cb([])
++            self._error_cb(result)
+             return
+ 
+         self._parser.close()
+@@ -280,9 +280,10 @@ class MicroformatUpdater(object):
+         self._check_next_update()
+ 
+     def fetch_update_info(self, installed_bundles, auto, progress_cb,
+-                          completion_cb):
++                          completion_cb, error_cb):
+         self._completion_cb = completion_cb
+         self._progress_cb = progress_cb
++        self._error_cb = error_cb
+         self._cancelling = False
+         self._updates = []
+         self._bundles_to_check = []
+diff --git a/src/jarabe/model/update/updater.py b/src/jarabe/model/update/updater.py
+index c5e6520..eac9101 100644
+--- a/src/jarabe/model/update/updater.py
++++ b/src/jarabe/model/update/updater.py
+@@ -58,6 +58,8 @@ class Updater(GObject.GObject):
+         'progress': (GObject.SignalFlags.RUN_FIRST,
+                      None,
+                      (int, str, float)),
++        'error': (GObject.SignalFlags.RUN_FIRST,
++                  None, (str,)),
+         'finished': (GObject.SignalFlags.RUN_FIRST,
+                      None,
+                      (object, object, bool))
+@@ -105,7 +107,8 @@ class Updater(GObject.GObject):
+         bundles = list(bundleregistry.get_registry())
+         self._model.fetch_update_info(bundles, auto,
+                                       self._backend_progress_cb,
+-                                      self._backend_finished_cb)
++                                      self._backend_finished_cb,
++                                      self._backend_error_cb)
+ 
+     def _backend_progress_cb(self, bundle_name, progress):
+         self.emit('progress', self._state, bundle_name, progress)
+@@ -123,6 +126,11 @@ class Updater(GObject.GObject):
+         else:
+             self.emit('updates-available', self._updates)
+ 
++    def _backend_error_cb(self, error):
++        _logger.debug("_backend_error_cb %s", error)
++        self._finished(True)
++        self.emit('error', error)
++
+     def update(self, bundle_ids):
+         if self._state != STATE_CHECKED:
+             raise UpdaterStateException()
+-- 
+1.8.1.4
+

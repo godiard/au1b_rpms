@@ -3,7 +3,7 @@
 Summary: Constructionist learning platform
 Name:    sugar
 Version: 0.100.1
-Release: 8.olpcau
+Release: 10.olpcau
 URL:     http://sugarlabs.org/
 License: GPLv2+
 Group:   User Interface/Desktops
@@ -36,6 +36,11 @@ Patch40: 0001-Fix-missing-options-in-batch-copy-palette.patch
 Patch41: 0001-Fix-error-while-trying-to-open-journal-palette.-Fixe.patch
 Patch42: 0001-Microformat-updater-set-cache-header.patch
 Patch43: 0001-Hide-the-password-in-the-cp-network-proxy-section.patch
+
+Patch44: 0001-Show-a-error-message-if-the-activity-updater-can-t-c.patch
+Patch45: 0001-Microformat-updater-fix-parser.patch
+Patch46: 0001-The-updater-need-reset-the-internal-state-when-finis.patch
+Patch47: 0001-Updater-Show-icons-for-new-activities.patch
 
 BuildRequires: gettext
 BuildRequires: GConf2-devel
@@ -207,6 +212,10 @@ This is the Sugar Web Services. Right now, only Teacher.
 %patch41 -p1 -b .error_open_palette
 %patch42 -p1 -b .microformat_cache
 %patch43 -p1 -b .hide_password
+%patch44 -p1 -b .updater_1
+%patch45 -p1 -b .updater_2
+%patch46 -p1 -b .updater_3
+%patch47 -p1 -b .updater_4
 
 %build
 # need run it again to include new files

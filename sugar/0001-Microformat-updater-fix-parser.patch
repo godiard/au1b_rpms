@@ -1,0 +1,32 @@
+From 3af3ec10478186e569192bfee8dd731a96ce163a Mon Sep 17 00:00:00 2001
+From: Gonzalo Odiard <godiard@gmail.com>
+Date: Mon, 17 Feb 2014 17:33:49 -0300
+Subject: [PATCH] Microformat updater: fix parser
+
+The object_id can be retrieved in more than one chunk,
+then the parser should take carr of that.
+
+Signed-off-by: Gonzalo Odiard <godiard@sugarlabs.org>
+---
+ src/jarabe/model/update/microformat.py | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
+
+diff --git a/src/jarabe/model/update/microformat.py b/src/jarabe/model/update/microformat.py
+index 12e6a48..216651d 100644
+--- a/src/jarabe/model/update/microformat.py
++++ b/src/jarabe/model/update/microformat.py
+@@ -118,7 +118,10 @@ class _UpdateHTMLParser(HTMLParser):
+             self.group_desc = data.strip()
+ 
+         if self.in_activity_id > 0:
+-            self.last_id = data.strip()
++            if self.last_id is None:
++                self.last_id = data.strip()
++            else:
++                self.last_id = self.last_id + data.strip()
+ 
+         if self.in_activity_version > 0:
+             try:
+-- 
+1.8.1.4
+
