@@ -97,7 +97,7 @@ gconftool-2 --direct --config-source xml:readwrite:/etc/gconf/gconf.xml.defaults
 gconftool-2 --direct --config-source xml:readwrite:/etc/gconf/gconf.xml.defaults \
     --type=string -s /desktop/sugar/services/zendesk/token "eG8tc3VwcG9ydEBsYXB0b3Aub3JnLmF1L3Rva2VuOlZTaWM4TThZbjZBRTJkMWxYNkFGbFhkZzUxSjlJSHFUQ01DYzNjOHY="
 gconftool-2 --direct --config-source xml:readwrite:/etc/gconf/gconf.xml.defaults \
-    --type list --list-type string -s /desktop/sugar/services/zendesk/fields '[21891880,21729904,21729914]'
+    --type list --list-type string -s /desktop/sugar/services/zendesk/fields '[21891880,21729904,21729914,21808844]'
 
 # hide Register menu in Sugar
 gconftool-2 --direct --config-source=xml:readwrite:/etc/gconf/gconf.xml.defaults \
