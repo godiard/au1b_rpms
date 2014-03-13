@@ -1,7 +1,7 @@
 Summary: Configs needed by the olpc-au image
 Name:    olpc-au-configs
 Version: 0.1
-Release: 5
+Release: 6
 URL:     https://www.laptop.org.au/
 License: LGPL
 Group:   User Interface/Desktops
@@ -104,6 +104,9 @@ gconftool-2 --direct --config-source=xml:readwrite:/etc/gconf/gconf.xml.defaults
     -s -t bool /desktop/sugar/show_register false
 
 %changelog
+* Thu Mar 13 2014 Martin Abente Lahaye <tch@sugarlabs.org> 0.1-6
+- add role id
+
 * Fri Mar 07 2014 Martin Abente Lahaye <tch@sugarlabs.org> 0.1-5
 - add support server configs
 
