@@ -9,6 +9,7 @@ Source0: olpc-au-configs-0.1.tar
 
 Requires: GConf2
 Requires: sugar
+Requires: olpc-powerd
 
 BuildArch: noarch
 
@@ -102,6 +103,9 @@ gconftool-2 --direct --config-source xml:readwrite:/etc/gconf/gconf.xml.defaults
 # hide Register menu in Sugar
 gconftool-2 --direct --config-source=xml:readwrite:/etc/gconf/gconf.xml.defaults \
     -s -t bool /desktop/sugar/show_register false
+
+# Workaround for #QT-24
+sed -i 's/config_WLAN_WAKE_FROM_BLANK_IDLE_SLEEP=\"no\"/config_WLAN_WAKE_FROM_BLANK_IDLE_SLEEP=\"yes\"/g' /etc/powerd/powerd.conf
 
 %changelog
 * Thu Mar 13 2014 Martin Abente Lahaye <tch@sugarlabs.org> 0.1-6
