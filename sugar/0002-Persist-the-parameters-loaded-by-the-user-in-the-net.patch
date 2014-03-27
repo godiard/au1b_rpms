@@ -1,6 +1,6 @@
-From 69f28bdcc0f4b68c113e1b4bc2bf9787868145f6 Mon Sep 17 00:00:00 2001
+From 250d18ab1b85d1b2ac4c782c4011e70aabab74e4 Mon Sep 17 00:00:00 2001
 From: Gonzalo Odiard <godiard@gmail.com>
-Date: Wed, 11 Dec 2013 22:29:07 -0300
+Date: Fri, 7 Mar 2014 16:42:51 -0300
 Subject: [PATCH 2/2] Persist the parameters loaded by the user in the network
  profiles
 
@@ -13,10 +13,10 @@ Signed-off-by: Gonzalo Odiard <gonzalo@laptop.org>
  2 files changed, 104 insertions(+), 11 deletions(-)
 
 diff --git a/extensions/cpsection/network/view.py b/extensions/cpsection/network/view.py
-index 89f0dd4..dd3a28e 100644
+index c942889..e1eac79 100644
 --- a/extensions/cpsection/network/view.py
 +++ b/extensions/cpsection/network/view.py
-@@ -504,24 +504,26 @@ class Network(SectionView):
+@@ -454,11 +454,12 @@ class Network(SectionView):
                  index = len(option_sets) - 1
                  network_profiles_index[network_profile['title']] = index
  
@@ -33,8 +33,9 @@ index 89f0dd4..dd3a28e 100644
  
          self._hidden_network_params_box = Gtk.VBox()
          self._hidden_network_params_box.show()
-         box_hidden_network.pack_start(self._hidden_network_params_box, False,
+@@ -466,13 +467,14 @@ class Network(SectionView):
                                        False, 0)
+ 
          # _select_hidden_network_profile need the box already created
 -        box_mode.connect('changed', self._select_hidden_network_profile)
 +        self._combo_setting_box.connect('changed',
@@ -51,7 +52,7 @@ index 89f0dd4..dd3a28e 100644
          create_connection_btn.connect('clicked', self.__connect_hidden_net_cb)
          btn_box.pack_start(create_connection_btn, False, False, 0)
          box_hidden_network.pack_start(btn_box, False, False, 0)
-@@ -530,6 +532,32 @@ class Network(SectionView):
+@@ -481,6 +483,32 @@ class Network(SectionView):
          workspace.pack_start(box_hidden_network, False, False, 0)
          box_hidden_network.show()
  
@@ -84,7 +85,7 @@ index 89f0dd4..dd3a28e 100644
      def _select_hidden_network_profile(self, combo_setting_box):
          giter = combo_setting_box.combo_box.get_active_iter()
          new_box = combo_setting_box.combo_box.get_model().get(giter, 2)[0]
-@@ -542,6 +570,14 @@ class Network(SectionView):
+@@ -493,6 +521,14 @@ class Network(SectionView):
          self._hidden_conn_manager.selected_profile = \
              combo_setting_box.combo_box.get_model().get(giter, 3)[0]
  
@@ -99,7 +100,7 @@ index 89f0dd4..dd3a28e 100644
      def __connect_hidden_net_cb(self, button):
  
          profile = self._hidden_conn_manager.selected_profile
-@@ -553,6 +589,7 @@ class Network(SectionView):
+@@ -504,6 +540,7 @@ class Network(SectionView):
  
              # get the values from all the entries
              current_box = self._hidden_network_params_box.get_children()[0]
@@ -107,7 +108,7 @@ index 89f0dd4..dd3a28e 100644
              for child in current_box.get_children():
                  # child is the SettingBox
                  entry = child.get_children()[1]
-@@ -560,8 +597,13 @@ class Network(SectionView):
+@@ -511,8 +548,13 @@ class Network(SectionView):
                  logging.error('property %s value %s', property_name,
                                entry.get_text())
                  profile[property_name] = entry.get_text()
@@ -121,7 +122,7 @@ index 89f0dd4..dd3a28e 100644
              self._hidden_conn_manager.create_and_connect_by_profile()
  
      def _add_proxy_section(self, workspace):
-@@ -713,7 +755,7 @@ class Network(SectionView):
+@@ -664,7 +706,7 @@ class Network(SectionView):
  
          # if a profile was selected update the combo value
          self._proxy_profile_name = self._model.get_proxy_profile_name()

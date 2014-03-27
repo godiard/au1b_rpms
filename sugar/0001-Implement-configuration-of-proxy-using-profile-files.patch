@@ -1,7 +1,7 @@
-From b94bdfa6ba015b15fdc98315d0c41a54da0550b3 Mon Sep 17 00:00:00 2001
+From c5ed6604f7b06398dcd0d9803826d927b584697d Mon Sep 17 00:00:00 2001
 From: Gonzalo Odiard <godiard@gmail.com>
-Date: Thu, 19 Sep 2013 16:52:59 -0300
-Subject: [PATCH 1/4] Implement configuration of proxy using profile files
+Date: Fri, 7 Mar 2014 13:38:49 -0300
+Subject: [PATCH] Implement configuration of proxy using profile files
 
 The file can be created by deployments to simplify
 filling complex proxy configurations.
@@ -16,20 +16,20 @@ Signed-off-by: Gonzalo Odiard <gonzalo@laptop.org>
  2 files changed, 277 insertions(+), 56 deletions(-)
 
 diff --git a/extensions/cpsection/network/model.py b/extensions/cpsection/network/model.py
-index 729dd18..90e5bcd 100644
+index 377a440..f7e3808 100644
 --- a/extensions/cpsection/network/model.py
 +++ b/extensions/cpsection/network/model.py
-@@ -20,6 +20,8 @@ import logging
+@@ -19,6 +19,8 @@ import logging
+ 
  import dbus
- import subprocess
  import uuid
 +import os
 +from ConfigParser import ConfigParser
  
  from gettext import gettext as _
  from gi.repository import GConf
-@@ -167,6 +169,65 @@ def launch_nm_connection_editor():
-         logging.exception('Error running nm-connection-editor')
+@@ -158,6 +160,65 @@ def set_publish_information(value):
+     return 0
  
  
 +def get_connectivity_profiles():
@@ -95,7 +95,7 @@ index 729dd18..90e5bcd 100644
  
      def __init__(self):
 diff --git a/extensions/cpsection/network/view.py b/extensions/cpsection/network/view.py
-index 70265f6..51f22ff 100644
+index c5a2d5b..6ca878c 100644
 --- a/extensions/cpsection/network/view.py
 +++ b/extensions/cpsection/network/view.py
 @@ -14,6 +14,7 @@
@@ -274,7 +274,7 @@ index 70265f6..51f22ff 100644
  
  
  class Network(SectionView):
-@@ -310,6 +349,9 @@ class Network(SectionView):
+@@ -308,6 +347,9 @@ class Network(SectionView):
          workspace.pack_start(box_mesh, False, True, 0)
          box_mesh.show()
  
@@ -284,7 +284,7 @@ index 70265f6..51f22ff 100644
          self._hidden_conn_manager = HiddenNetworkManager()
          if self._hidden_conn_manager.enabled:
              self._add_hidden_ssid_section(workspace)
-@@ -434,24 +476,46 @@ class Network(SectionView):
+@@ -384,24 +426,46 @@ class Network(SectionView):
          automatic_proxy_box = Gtk.VBox(spacing=style.DEFAULT_SPACING)
          manual_proxy_box = Gtk.VBox(spacing=style.DEFAULT_SPACING)
  
@@ -337,7 +337,7 @@ index 70265f6..51f22ff 100644
  
          wpad_help_text = _('Web Proxy Autodiscovery is used when a'
                             ' Configuration URL is not provided. This is not'
-@@ -462,63 +526,158 @@ class Network(SectionView):
+@@ -412,63 +476,158 @@ class Network(SectionView):
          automatic_proxy_help.show()
          automatic_proxy_box.pack_start(automatic_proxy_help, True, True, 0)
  
@@ -517,7 +517,7 @@ index 70265f6..51f22ff 100644
  
      def setup(self):
          self._entry.set_text(self._model.get_jabber())
-@@ -553,6 +712,7 @@ class Network(SectionView):
+@@ -503,6 +662,7 @@ class Network(SectionView):
      def apply(self):
          for setting in self._proxy_settings.values():
              setting.apply()

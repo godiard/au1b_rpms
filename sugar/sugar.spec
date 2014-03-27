@@ -3,7 +3,7 @@
 Summary: Constructionist learning platform
 Name:    sugar
 Version: 0.100.1
-Release: 10.olpcau
+Release: 11.olpcau
 URL:     http://sugarlabs.org/
 License: GPLv2+
 Group:   User Interface/Desktops
@@ -15,7 +15,7 @@ Patch0:  sugar-gnomekeyring.patch
 Patch1:  0001-add-age-and-gender-to-intro-and-aboutme-section-of-c.patch
 Patch2:  0001-add-dbus-method-to-update-favorites.patch
 Patch4:  0002-Add-proxy-configuration-support-to-Network-Control-P.patch
-Patch5:  0003-Control-Panel-Add-aoption-to-launch-the-network-mana.patch
+#Patch5:  0003-Control-Panel-Add-aoption-to-launch-the-network-mana.patch
 Patch10: 0010-WPA-enterprise-feature.patch
 Patch14: 0001-Add-section-to-configure-hidden-networks.patch
 Patch15: 0001-Implement-configuration-of-proxy-using-profile-files.patch
@@ -193,7 +193,7 @@ This is the Sugar Web Services. Right now, only Teacher.
 %patch1 -p1 -b .age_page
 %patch2 -p1 -b .add_dbus_method
 %patch4 -p1 -b .proxy_support
-%patch5 -p1 -b .add_nmce_launcher
+#%patch5 -p1 -b .add_nmce_launcher
 %patch10 -p1 -b .wpa
 %patch14 -p1 -b .hidden_networks
 %patch15 -p1 -b .proxy_conf
