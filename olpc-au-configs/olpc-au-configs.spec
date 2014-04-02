@@ -1,14 +1,14 @@
 Summary: Configs needed by the olpc-au image
 Name:    olpc-au-configs
-Version: 0.1
-Release: 8
+Version: 0.102
+Release: 1
 URL:     https://www.laptop.org.au/
 License: LGPL
 Group:   User Interface/Desktops
-Source0: olpc-au-configs-0.1.tar
+Source0: olpc-au-configs-0.102.tar
 
 Requires: GConf2
-Requires: sugar
+Requires: sugar >= 0.101
 
 BuildArch: noarch
 
@@ -33,35 +33,36 @@ cp -r %{_builddir}/%{name}-%{version}/* %{buildroot}
 %{_sysconfdir}/*
 %{_datadir}/sugar/licenses/*
 %{_datadir}/plymouth/themes/olpc/custom.png
+%{_datadir}/glib-2.0/schemas/sugar.gschema.override
 
 %post
 export GCONF_CONFIG_SOURCE=`gconftool-2 --get-default-source`
 # Use microformat back end for updater
-gconftool-2 --direct --config-source xml:readwrite:/etc/gconf/gconf.xml.defaults \
-    --type string --set /desktop/sugar/update/backend microformat.MicroformatUpdater
+#gconftool-2 --direct --config-source xml:readwrite:/etc/gconf/gconf.xml.defaults \
+#    --type string --set /desktop/sugar/update/backend microformat.MicroformatUpdater
 
 # microformat updater url to use.
-gconftool-2 --direct --config-source xml:readwrite:/etc/gconf/gconf.xml.defaults \
-    --type string --set /desktop/sugar/update/microformat_update_url \
-    http://wiki.laptop.org/go/Activities/OLPCAU/ARM-test-addons/13.2.0
+#gconftool-2 --direct --config-source xml:readwrite:/etc/gconf/gconf.xml.defaults \
+#    --type string --set /desktop/sugar/update/microformat_update_url \
+#    http://wiki.laptop.org/go/Activities/OLPCAU/ARM-test-addons/13.2.0
 
 # Enable microformat updater.
-gconftool-2 --direct --config-source xml:readwrite:/etc/gconf/gconf.xml.defaults \
-    --type int --set /desktop/sugar/update/auto_update_frequency 1
+#gconftool-2 --direct --config-source xml:readwrite:/etc/gconf/gconf.xml.defaults \
+#    --type int --set /desktop/sugar/update/auto_update_frequency 1
 
 # Set max activities open
-gconftool-2 --direct --config-source xml:readwrite:/etc/gconf/gconf.xml.defaults \
-    --type int --set /desktop/sugar/maximum_number_of_open_activities 4
+#gconftool-2 --direct --config-source xml:readwrite:/etc/gconf/gconf.xml.defaults \
+#    --type int --set /desktop/sugar/maximum_number_of_open_activities 4
 
 # preset GSM
-gconftool-2 --direct --config-source xml:readwrite:/etc/gconf/gconf.xml.defaults \
-    --type=string --set /desktop/sugar/network/gsm/country au
-gconftool-2 --direct --config-source xml:readwrite:/etc/gconf/gconf.xml.defaults \
-    --type=string --set /desktop/sugar/network/gsm/provider Telstra
-gconftool-2 --direct --config-source xml:readwrite:/etc/gconf/gconf.xml.defaults \
-    --type int --set /desktop/sugar/network/gsm/plan 2
-gconftool-2 --direct --config-source xml:readwrite:/etc/gconf/gconf.xml.defaults \
-    --type=string --set /desktop/sugar/network/gsm/apn telstra.internet
+#gconftool-2 --direct --config-source xml:readwrite:/etc/gconf/gconf.xml.defaults \
+#    --type=string --set /desktop/sugar/network/gsm/country au
+#gconftool-2 --direct --config-source xml:readwrite:/etc/gconf/gconf.xml.defaults \
+#    --type=string --set /desktop/sugar/network/gsm/provider Telstra
+#gconftool-2 --direct --config-source xml:readwrite:/etc/gconf/gconf.xml.defaults \
+#    --type int --set /desktop/sugar/network/gsm/plan 2
+#gconftool-2 --direct --config-source xml:readwrite:/etc/gconf/gconf.xml.defaults \
+#    --type=string --set /desktop/sugar/network/gsm/apn telstra.internet
 
 # Set Write default font
 gconftool-2 --direct --config-source xml:readwrite:/etc/gconf/gconf.xml.defaults \
@@ -74,8 +75,8 @@ gconftool-2 --direct --config-source xml:readwrite:/etc/gconf/gconf.xml.defaults
     -s --type boolean /desktop/sugar/extensions/network/conf_hidden_ssid true
 
 # Sugar font (AU use abc123)
-gconftool-2 --direct --config-source xml:readwrite:/etc/gconf/gconf.xml.defaults \
-    --type string --set /desktop/sugar/font/default_face abc123
+#gconftool-2 --direct --config-source xml:readwrite:/etc/gconf/gconf.xml.defaults \
+#    --type string --set /desktop/sugar/font/default_face abc123
 
 # Harvest statistics service configuration
 gconftool-2 --direct --config-source xml:readwrite:/etc/gconf/gconf.xml.defaults \
@@ -100,8 +101,13 @@ gconftool-2 --direct --config-source xml:readwrite:/etc/gconf/gconf.xml.defaults
     --type list --list-type string -s /desktop/sugar/services/zendesk/fields '[21891880,21729904,21729914,21808844]'
 
 # hide Register menu in Sugar
-gconftool-2 --direct --config-source=xml:readwrite:/etc/gconf/gconf.xml.defaults \
-    -s -t bool /desktop/sugar/show_register false
+#gconftool-2 --direct --config-source=xml:readwrite:/etc/gconf/gconf.xml.defaults \
+#    -s -t bool /desktop/sugar/show_register false
+
+glib-compile-schemas %{_datadir}/glib-2.0/schemas
+
+%postun
+glib-compile-schemas %{_datadir}/glib-2.0/schemas
 
 %changelog
 * Thu Mar 13 2014 Martin Abente Lahaye <tch@sugarlabs.org> 0.1-6
