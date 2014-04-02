@@ -1,6 +1,6 @@
-From b847dc1cda54c29d0dabd7d5723c358e7a1c955d Mon Sep 17 00:00:00 2001
+From 54e858b4786991f769c32ac26eac530edca276cf Mon Sep 17 00:00:00 2001
 From: Gonzalo Odiard <godiard@gmail.com>
-Date: Fri, 7 Mar 2014 13:29:27 -0300
+Date: Thu, 27 Mar 2014 14:39:55 -0300
 Subject: [PATCH] Add section to configure hidden networks
 
 This implementation, use network manager to create and
@@ -11,33 +11,35 @@ v2 - fixes separator in the ui
 
 Signed-off-by: Gonzalo Odiard <gonzalo@laptop.org>
 ---
- extensions/cpsection/network/model.py | 85 +++++++++++++++++++++++++++++++++++
- extensions/cpsection/network/view.py  | 44 ++++++++++++++++--
+ extensions/cpsection/network/model.py | 91 +++++++++++++++++++++++++++++++++++
+ extensions/cpsection/network/view.py  | 44 +++++++++++++++--
  src/jarabe/model/network.py           |  2 +
- 3 files changed, 128 insertions(+), 3 deletions(-)
+ 3 files changed, 134 insertions(+), 3 deletions(-)
 
 diff --git a/extensions/cpsection/network/model.py b/extensions/cpsection/network/model.py
-index ae9e64d..377a440 100644
+index d2b4ca6..1757fd2 100644
 --- a/extensions/cpsection/network/model.py
 +++ b/extensions/cpsection/network/model.py
-@@ -18,6 +18,8 @@
+@@ -19,6 +19,8 @@
  import logging
  
  import dbus
 +import uuid
 +
  from gettext import gettext as _
- from gi.repository import GConf
+ from gi.repository import Gio
  
-@@ -154,3 +156,86 @@ def set_publish_information(value):
-     client = GConf.Client.get_default()
-     client.set_bool('/desktop/sugar/collaboration/publish_gadget', value)
+@@ -204,3 +206,92 @@ def set_publish_information(value):
+     settings = Gio.Settings('org.sugarlabs.collaboration')
+     settings.set_boolean('publish-gadget', value)
      return 0
 +
 +
 +class HiddenNetworkManager():
 +
 +    def __init__(self):
++        # DEPRECATED
++        from gi.repository import GConf
 +        client = GConf.Client.get_default()
 +        self.enabled = client.get_bool(
 +            '/desktop/sugar/extensions/network/conf_hidden_ssid')
@@ -103,6 +105,8 @@ index ae9e64d..377a440 100644
 +        logging.error('Failed to add connection: %s', err)
 +
 +    def get_hidden_ssid(self):
++        # DEPRECATED
++        from gi.repository import GConf
 +        client = GConf.Client.get_default()
 +        ssid = client.get_string(
 +            '/desktop/sugar/extensions/network/hidden_network_name')
@@ -111,16 +115,18 @@ index ae9e64d..377a440 100644
 +        return ssid
 +
 +    def set_hidden_ssid(self, ssid):
++        # DEPRECATED
++        from gi.repository import GConf
 +        client = GConf.Client.get_default()
 +        client.set_string(
 +            '/desktop/sugar/extensions/network/hidden_network_name', ssid)
 +        if ssid != '':
 +            self.create_and_connect_by_ssid(ssid)
 diff --git a/extensions/cpsection/network/view.py b/extensions/cpsection/network/view.py
-index 809cdfd..c5a2d5b 100644
+index 7331ae1..a24aa56 100644
 --- a/extensions/cpsection/network/view.py
 +++ b/extensions/cpsection/network/view.py
-@@ -26,6 +26,7 @@ from sugar3.graphics import style
+@@ -27,6 +27,7 @@ from sugar3.graphics import style
  from jarabe.controlpanel.sectionview import SectionView
  from jarabe.controlpanel.inlinealert import InlineAlert
  
@@ -128,7 +134,7 @@ index 809cdfd..c5a2d5b 100644
  
  CLASS = 'Network'
  ICON = 'module-network'
-@@ -307,15 +308,48 @@ class Network(SectionView):
+@@ -309,15 +310,48 @@ class Network(SectionView):
          workspace.pack_start(box_mesh, False, True, 0)
          box_mesh.show()
  
@@ -180,7 +186,7 @@ index 809cdfd..c5a2d5b 100644
          label_proxy = Gtk.Label(_('Proxy'))
          label_proxy.set_alignment(0, 0)
          workspace.pack_start(label_proxy, False, True, 0)
-@@ -470,6 +504,10 @@ class Network(SectionView):
+@@ -472,6 +506,10 @@ class Network(SectionView):
          for setting in self._proxy_settings.values():
              setting.apply()
  
@@ -192,10 +198,10 @@ index 809cdfd..c5a2d5b 100644
          if self._jabber_valid and self._radio_valid:
              self.props.is_valid = True
 diff --git a/src/jarabe/model/network.py b/src/jarabe/model/network.py
-index 44d78f2..4f64d19 100644
+index bb62080..0e07d2c 100644
 --- a/src/jarabe/model/network.py
 +++ b/src/jarabe/model/network.py
-@@ -403,6 +403,7 @@ class Wireless(object):
+@@ -405,6 +405,7 @@ class Wireless(object):
          self.mode = None
          self.band = None
          self.channel = None
@@ -203,7 +209,7 @@ index 44d78f2..4f64d19 100644
  
      def get_dict(self):
          wireless = {'ssid': self.ssid}
-@@ -414,6 +415,7 @@ class Wireless(object):
+@@ -416,6 +417,7 @@ class Wireless(object):
              wireless['band'] = self.band
          if self.channel:
              wireless['channel'] = self.channel

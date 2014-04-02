@@ -1,6 +1,6 @@
-From c5ed6604f7b06398dcd0d9803826d927b584697d Mon Sep 17 00:00:00 2001
+From da1285da003f55b4945c45aabda3ade7e4641636 Mon Sep 17 00:00:00 2001
 From: Gonzalo Odiard <godiard@gmail.com>
-Date: Fri, 7 Mar 2014 13:38:49 -0300
+Date: Thu, 27 Mar 2014 14:53:46 -0300
 Subject: [PATCH] Implement configuration of proxy using profile files
 
 The file can be created by deployments to simplify
@@ -11,24 +11,25 @@ This feature is needed in Australia.
 
 Signed-off-by: Gonzalo Odiard <gonzalo@laptop.org>
 ---
- extensions/cpsection/network/model.py |  61 ++++++++
+ extensions/cpsection/network/model.py |  66 +++++++++
  extensions/cpsection/network/view.py  | 272 +++++++++++++++++++++++++++-------
- 2 files changed, 277 insertions(+), 56 deletions(-)
+ 2 files changed, 282 insertions(+), 56 deletions(-)
 
 diff --git a/extensions/cpsection/network/model.py b/extensions/cpsection/network/model.py
-index 377a440..f7e3808 100644
+index 1757fd2..732ecd2 100644
 --- a/extensions/cpsection/network/model.py
 +++ b/extensions/cpsection/network/model.py
-@@ -19,6 +19,8 @@ import logging
- 
+@@ -21,6 +21,9 @@ import logging
  import dbus
  import uuid
+ 
 +import os
 +from ConfigParser import ConfigParser
- 
++
  from gettext import gettext as _
- from gi.repository import GConf
-@@ -158,6 +160,65 @@ def set_publish_information(value):
+ from gi.repository import Gio
+ 
+@@ -208,6 +211,69 @@ def set_publish_information(value):
      return 0
  
  
@@ -74,11 +75,15 @@ index 377a440..f7e3808 100644
 +
 +
 +def get_proxy_profile_name():
++    # DEPRECATED
++    from gi.repository import GConf
 +    client = GConf.Client.get_default()
 +    return client.get_string('/desktop/sugar/network/proxy/profile_name')
 +
 +
 +def set_proxy_profile_name(profile_name):
++    # DEPRECATED
++    from gi.repository import GConf
 +    client = GConf.Client.get_default()
 +    client.set_string('/desktop/sugar/network/proxy/profile_name',
 +                      profile_name)
@@ -95,10 +100,10 @@ index 377a440..f7e3808 100644
  
      def __init__(self):
 diff --git a/extensions/cpsection/network/view.py b/extensions/cpsection/network/view.py
-index c5a2d5b..6ca878c 100644
+index a24aa56..463facd 100644
 --- a/extensions/cpsection/network/view.py
 +++ b/extensions/cpsection/network/view.py
-@@ -14,6 +14,7 @@
+@@ -15,6 +15,7 @@
  # along with this program; if not, write to the Free Software
  # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
  from gettext import gettext as _
@@ -106,7 +111,7 @@ index c5a2d5b..6ca878c 100644
  
  from gi.repository import Gtk
  from gi.repository import Gdk
-@@ -34,6 +35,8 @@ TITLE = _('Network')
+@@ -35,6 +36,8 @@ TITLE = _('Network')
  
  _APPLY_TIMEOUT = 3000
  
@@ -115,7 +120,7 @@ index c5a2d5b..6ca878c 100644
  
  class SettingBox(Gtk.HBox):
      """
-@@ -53,6 +56,11 @@ class SettingBox(Gtk.HBox):
+@@ -54,6 +57,11 @@ class SettingBox(Gtk.HBox):
  
  
  class ComboSettingBox(Gtk.VBox):
@@ -127,7 +132,7 @@ index c5a2d5b..6ca878c 100644
      """
      Container for sets of different settings selected by a top-level
      setting.
-@@ -68,18 +76,18 @@ class ComboSettingBox(Gtk.VBox):
+@@ -69,18 +77,18 @@ class ComboSettingBox(Gtk.VBox):
          self.pack_start(setting_box, False, False, 0)
          setting_box.show()
  
@@ -154,7 +159,7 @@ index c5a2d5b..6ca878c 100644
  
          self._settings_box = Gtk.VBox()
          self._settings_box.show()
-@@ -88,7 +96,7 @@ class ComboSettingBox(Gtk.VBox):
+@@ -89,7 +97,7 @@ class ComboSettingBox(Gtk.VBox):
          for optset in option_sets:
              model.append(optset)
  
@@ -163,7 +168,7 @@ index c5a2d5b..6ca878c 100644
                       Gio.SettingsBindFlags.DEFAULT)
  
      def __combo_changed_cb(self, combobox):
-@@ -101,6 +109,15 @@ class ComboSettingBox(Gtk.VBox):
+@@ -102,6 +110,15 @@ class ComboSettingBox(Gtk.VBox):
          self._settings_box.add(new_box)
          new_box.show()
  
@@ -179,7 +184,7 @@ index c5a2d5b..6ca878c 100644
  
  class OptionalSettingsBox(Gtk.VBox):
      """
-@@ -112,19 +129,29 @@ class OptionalSettingsBox(Gtk.VBox):
+@@ -113,19 +130,29 @@ class OptionalSettingsBox(Gtk.VBox):
      def __init__(self, name, setting, setting_key, contents_box):
          Gtk.VBox.__init__(self, spacing=style.DEFAULT_SPACING)
  
@@ -216,7 +221,7 @@ index c5a2d5b..6ca878c 100644
  
  class HostPortSettingBox(SettingBox):
      """
-@@ -133,20 +160,28 @@ class HostPortSettingBox(SettingBox):
+@@ -134,20 +161,28 @@ class HostPortSettingBox(SettingBox):
      def __init__(self, name, setting, size_group=None):
          SettingBox.__init__(self, name, size_group)
  
@@ -254,7 +259,7 @@ index c5a2d5b..6ca878c 100644
  
  
  class StringSettingBox(SettingBox):
-@@ -156,11 +191,15 @@ class StringSettingBox(SettingBox):
+@@ -157,11 +192,15 @@ class StringSettingBox(SettingBox):
      def __init__(self, name, setting, setting_key, size_group=None):
          SettingBox.__init__(self, name, size_group)
  
@@ -274,7 +279,7 @@ index c5a2d5b..6ca878c 100644
  
  
  class Network(SectionView):
-@@ -308,6 +347,9 @@ class Network(SectionView):
+@@ -310,6 +349,9 @@ class Network(SectionView):
          workspace.pack_start(box_mesh, False, True, 0)
          box_mesh.show()
  
@@ -284,7 +289,7 @@ index c5a2d5b..6ca878c 100644
          self._hidden_conn_manager = HiddenNetworkManager()
          if self._hidden_conn_manager.enabled:
              self._add_hidden_ssid_section(workspace)
-@@ -384,24 +426,46 @@ class Network(SectionView):
+@@ -386,24 +428,46 @@ class Network(SectionView):
          automatic_proxy_box = Gtk.VBox(spacing=style.DEFAULT_SPACING)
          manual_proxy_box = Gtk.VBox(spacing=style.DEFAULT_SPACING)
  
@@ -337,7 +342,7 @@ index c5a2d5b..6ca878c 100644
  
          wpad_help_text = _('Web Proxy Autodiscovery is used when a'
                             ' Configuration URL is not provided. This is not'
-@@ -412,63 +476,158 @@ class Network(SectionView):
+@@ -414,63 +478,158 @@ class Network(SectionView):
          automatic_proxy_help.show()
          automatic_proxy_box.pack_start(automatic_proxy_help, True, True, 0)
  
@@ -517,7 +522,7 @@ index c5a2d5b..6ca878c 100644
  
      def setup(self):
          self._entry.set_text(self._model.get_jabber())
-@@ -503,6 +662,7 @@ class Network(SectionView):
+@@ -505,6 +664,7 @@ class Network(SectionView):
      def apply(self):
          for setting in self._proxy_settings.values():
              setting.apply()

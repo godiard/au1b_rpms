@@ -1,34 +1,30 @@
-From 2a3a5c4a825beaf78ef30aa297485db13c062e40 Mon Sep 17 00:00:00 2001
+From 19e938807661f7c5d6da5e8008c40d5206ea818c Mon Sep 17 00:00:00 2001
 From: Gonzalo Odiard <godiard@gmail.com>
-Date: Fri, 7 Mar 2014 15:04:53 -0300
+Date: Thu, 27 Mar 2014 15:18:30 -0300
 Subject: [PATCH] Connect to a hidden network using a profile
-
-This patch already include the fixes in
-0001-Small-fixes-to-Connect-to-a-hidden-network-using-a-p.patch
-and 0001-Avoid-error-in-network-cp-section-write-profile.patch
 
 Signed-off-by: Gonzalo Odiard <gonzalo@laptop.org>
 ---
- extensions/cpsection/network/model.py | 95 ++++++++++++++++++++++++++++-------
- extensions/cpsection/network/view.py  | 77 ++++++++++++++++++++--------
+ extensions/cpsection/network/model.py | 99 +++++++++++++++++++++++++++--------
+ extensions/cpsection/network/view.py  | 77 +++++++++++++++++++--------
  src/jarabe/desktop/networkviews.py    | 12 ++++-
- src/jarabe/model/network.py           | 23 ++++++++-
- 4 files changed, 166 insertions(+), 41 deletions(-)
+ src/jarabe/model/network.py           | 23 +++++++-
+ 4 files changed, 166 insertions(+), 45 deletions(-)
 
 diff --git a/extensions/cpsection/network/model.py b/extensions/cpsection/network/model.py
-index d7887c0..9f4164f 100644
+index 18fd92a..b486104 100644
 --- a/extensions/cpsection/network/model.py
 +++ b/extensions/cpsection/network/model.py
-@@ -207,6 +207,8 @@ def get_proxy_profile_name():
- 
- 
+@@ -262,6 +262,8 @@ def get_proxy_profile_name():
  def set_proxy_profile_name(profile_name):
+     # DEPRECATED
+     from gi.repository import GConf
 +    if profile_name is None:
 +        profile_name = ''
      client = GConf.Client.get_default()
      client.set_string('/desktop/sugar/network/proxy/profile_name',
                        profile_name)
-@@ -226,6 +228,7 @@ class HiddenNetworkManager():
+@@ -283,6 +285,7 @@ class HiddenNetworkManager():
          self.enabled = client.get_bool(
              '/desktop/sugar/extensions/network/conf_hidden_ssid')
          if not self.enabled:
@@ -36,7 +32,7 @@ index d7887c0..9f4164f 100644
              return
          try:
              self._bus = dbus.SystemBus()
-@@ -239,13 +242,16 @@ class HiddenNetworkManager():
+@@ -296,13 +299,16 @@ class HiddenNetworkManager():
  
          # get the list of connectivity profiles of type "connectivity"
          self.network_profiles = []
@@ -54,7 +50,7 @@ index d7887c0..9f4164f 100644
          for dev_o in devices_o:
              self._check_device(dev_o)
  
-@@ -274,9 +280,79 @@ class HiddenNetworkManager():
+@@ -331,9 +337,79 @@ class HiddenNetworkManager():
              settings.connection.type = \
                  network.NM_CONNECTION_TYPE_802_11_WIRELESS
              settings.connection.uuid = str(uuid.uuid4())
@@ -134,7 +130,7 @@ index d7887c0..9f4164f 100644
  
              self._netmgr.AddAndActivateConnection(
                  settings.get_dict(),
-@@ -291,20 +367,5 @@ class HiddenNetworkManager():
+@@ -348,24 +424,5 @@ class HiddenNetworkManager():
      def _add_connection_reply_cb(self, netmgr, connection):
          logging.debug('Added connection: %s', connection)
  
@@ -143,6 +139,8 @@ index d7887c0..9f4164f 100644
          logging.error('Failed to add connection: %s', err)
 -
 -    def get_hidden_ssid(self):
+-        # DEPRECATED
+-        from gi.repository import GConf
 -        client = GConf.Client.get_default()
 -        ssid = client.get_string(
 -            '/desktop/sugar/extensions/network/hidden_network_name')
@@ -151,16 +149,18 @@ index d7887c0..9f4164f 100644
 -        return ssid
 -
 -    def set_hidden_ssid(self, ssid):
+-        # DEPRECATED
+-        from gi.repository import GConf
 -        client = GConf.Client.get_default()
 -        client.set_string(
 -            '/desktop/sugar/extensions/network/hidden_network_name', ssid)
 -        if ssid != '':
 -            self.create_and_connect_by_ssid(ssid)
 diff --git a/extensions/cpsection/network/view.py b/extensions/cpsection/network/view.py
-index 6885b55..b1f16dd 100644
+index e1e75a8..f03b14b 100644
 --- a/extensions/cpsection/network/view.py
 +++ b/extensions/cpsection/network/view.py
-@@ -389,12 +389,23 @@ class Network(SectionView):
+@@ -391,12 +391,23 @@ class Network(SectionView):
  
          size_group = Gtk.SizeGroup(Gtk.SizeGroupMode.HORIZONTAL)
  
@@ -186,7 +186,7 @@ index 6885b55..b1f16dd 100644
              for network_profile in self._hidden_conn_manager.network_profiles:
                  box = Gtk.VBox()
  
-@@ -434,6 +445,7 @@ class Network(SectionView):
+@@ -436,6 +447,7 @@ class Network(SectionView):
                                  entry = Gtk.Entry()
                                  setting_box.pack_start(entry, True, True, 0)
                                  box.pack_start(setting_box, True, True, 0)
@@ -194,7 +194,7 @@ index 6885b55..b1f16dd 100644
                      count = count + 1
                  box.show_all()
  
-@@ -442,27 +454,30 @@ class Network(SectionView):
+@@ -444,27 +456,30 @@ class Network(SectionView):
                  index = len(option_sets) - 1
                  network_profiles_index[network_profile['title']] = index
  
@@ -239,7 +239,7 @@ index 6885b55..b1f16dd 100644
          workspace.pack_start(box_hidden_network, False, False, 0)
          box_hidden_network.show()
  
-@@ -475,8 +490,30 @@ class Network(SectionView):
+@@ -477,8 +492,30 @@ class Network(SectionView):
  
          self._hidden_network_params_box.add(new_box)
          new_box.show()
@@ -272,7 +272,7 @@ index 6885b55..b1f16dd 100644
  
      def _add_proxy_section(self, workspace):
          separator_hidden_network = Gtk.HSeparator()
-@@ -755,10 +792,6 @@ class Network(SectionView):
+@@ -757,10 +794,6 @@ class Network(SectionView):
              setting.apply()
          self._model.set_proxy_profile_name(self._proxy_profile_name)
  
@@ -284,7 +284,7 @@ index 6885b55..b1f16dd 100644
          if self._jabber_valid and self._radio_valid:
              self.props.is_valid = True
 diff --git a/src/jarabe/desktop/networkviews.py b/src/jarabe/desktop/networkviews.py
-index 9976c02..c6dffda 100644
+index a0bd568..8cdb6f6 100644
 --- a/src/jarabe/desktop/networkviews.py
 +++ b/src/jarabe/desktop/networkviews.py
 @@ -510,7 +510,17 @@ class WirelessNetworkView(EventPulsingIcon):
@@ -307,10 +307,10 @@ index 9976c02..c6dffda 100644
          network.add_and_activate_connection(self._device, settings,
                                              self.get_first_ap().model)
 diff --git a/src/jarabe/model/network.py b/src/jarabe/model/network.py
-index 4f64d19..5edb2a4 100644
+index 0e07d2c..930ab8d 100644
 --- a/src/jarabe/model/network.py
 +++ b/src/jarabe/model/network.py
-@@ -365,6 +365,27 @@ def is_sugar_adhoc_network(ssid):
+@@ -367,6 +367,27 @@ def is_sugar_adhoc_network(ssid):
      return ssid.startswith('Ad-hoc Network')
  
  
@@ -338,7 +338,7 @@ index 4f64d19..5edb2a4 100644
  class WirelessSecurity(object):
      def __init__(self):
          self.key_mgmt = None
-@@ -535,7 +556,7 @@ class Settings(object):
+@@ -537,7 +558,7 @@ class Settings(object):
          if self.ip4_config is not None:
              settings['ipv4'] = self.ip4_config.get_dict()
          if self.wpa_eap_setting is not None:

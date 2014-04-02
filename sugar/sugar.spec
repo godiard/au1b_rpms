@@ -2,45 +2,35 @@
 
 Summary: Constructionist learning platform
 Name:    sugar
-Version: 0.100.1
-Release: 11.olpcau
+Version: 0.101
+Release: 1.olpcau
 URL:     http://sugarlabs.org/
 License: GPLv2+
 Group:   User Interface/Desktops
-Source0: sugar-0.100.1.tar
+Source0: sugar-0.101.tar
 
 # from sugar master, last commit is 6a43e14e1cdcbdda97cfd5d8c0cbbff966dfcd0f
 
 Patch0:  sugar-gnomekeyring.patch
-Patch1:  0001-add-age-and-gender-to-intro-and-aboutme-section-of-c.patch
 Patch2:  0001-add-dbus-method-to-update-favorites.patch
-Patch4:  0002-Add-proxy-configuration-support-to-Network-Control-P.patch
-#Patch5:  0003-Control-Panel-Add-aoption-to-launch-the-network-mana.patch
+Patch4:  0001-Add-proxy-configuration-support-to-Network-Control-P.patch
 Patch10: 0010-WPA-enterprise-feature.patch
 Patch14: 0001-Add-section-to-configure-hidden-networks.patch
 Patch15: 0001-Implement-configuration-of-proxy-using-profile-files.patch
 Patch16: 0002-Make-combo-in-proxy-selection-more-generic.patch
-Patch17: 0003-Ask-in-the-newtwork-panel-options-based-on-connectiv.patch
+Patch17: 0001-Ask-in-the-newtwork-panel-options-based-on-connectiv.patch
 Patch18: 0001-Connect-to-a-hidden-network-using-a-profile.patch
+
 Patch19: 0001-Add-teacher-webservice.patch
+
 Patch23: 0001-Stop-all-the-activities-if-tried-to-shutdown-after-3.patch
 
 Patch26: 0001-Move-class-HiddenNetworkManager-to-network.py.patch
-Patch27: 0002-Persist-the-parameters-loaded-by-the-user-in-the-net.patch
-Patch28: 0001-Backup-and-Restore-to-a-mounted-device.patch
+Patch27: 0001-Persist-the-parameters-loaded-by-the-user-in-the-net.patch
 Patch30: 0001-Connect-to-hidden-network-if-needed-at-cp-section-cl.patch
-Patch31: 0001-Activity-Help-integration.patch
 Patch32: 0001-Set-env-variable-to-request-use-webkit1.patch
 
-Patch40: 0001-Fix-missing-options-in-batch-copy-palette.patch
-Patch41: 0001-Fix-error-while-trying-to-open-journal-palette.-Fixe.patch
-Patch42: 0001-Microformat-updater-set-cache-header.patch
 Patch43: 0001-Hide-the-password-in-the-cp-network-proxy-section.patch
-
-Patch44: 0001-Show-a-error-message-if-the-activity-updater-can-t-c.patch
-Patch45: 0001-Microformat-updater-fix-parser.patch
-Patch46: 0001-The-updater-need-reset-the-internal-state-when-finis.patch
-Patch47: 0001-Updater-Show-icons-for-new-activities.patch
 
 BuildRequires: gettext
 BuildRequires: GConf2-devel
@@ -52,6 +42,7 @@ BuildRequires: perl-XML-Parser
 BuildRequires: pkgconfig
 BuildRequires: python
 
+Requires: avahi-tools
 Requires: dbus-x11
 Requires: ethtool
 Requires: gnome-keyring-pam
@@ -60,6 +51,7 @@ Requires: gtksourceview3
 Requires: gvfs
 Requires: gwebsockets
 Requires: libwnck3
+Requires: libxklavier
 Requires: metacity
 Requires: NetworkManager
 Requires: openssh
@@ -69,8 +61,6 @@ Requires: sugar-toolkit-gtk3
 Requires: telepathy-mission-control
 Requires: upower
 Requires: xdg-user-dirs
-Requires: libxklavier
-Requires: avahi-tools
 
 BuildArch: noarch
 
@@ -89,7 +79,8 @@ See http://www.laptop.org for more information on this project.
 Summary: All control panel modules 
 Group: User Interface/Desktops
 Requires: %{name} = %{version}-%{release}
-Requires: %{name}-cp-background %{name}-cp-datetime %{name}-cp-frame %{name}-cp-language
+Requires: %{name}-cp-background %{name}-cp-backup %{name}-cp-datetime 
+Requires: %{name}-cp-frame %{name}-cp-language
 Requires: %{name}-cp-modemconfiguration %{name}-cp-network %{name}-cp-power %{name}-cp-keyboard
 Requires: %{name}-cp-webaccount %{name}-cp-updater
 
@@ -103,6 +94,14 @@ Requires: %{name} = %{version}-%{release}
 
 %description cp-background
 This is the Sugar control panel to change the background
+
+%package cp-backup
+Summary: Sugar Backup control panel
+Group: User Interface/Desktops
+Requires: %{name} = %{version}-%{release}
+
+%description cp-backup
+This is the Sugar control panel to backup and restore the Journal
 
 %package cp-datetime
 Summary: Sugar Date and Time control panel
@@ -190,10 +189,8 @@ This is the Sugar Web Services. Right now, only Teacher.
 %setup -q
 %patch0 -p1 -b .keyring
 
-%patch1 -p1 -b .age_page
 %patch2 -p1 -b .add_dbus_method
 %patch4 -p1 -b .proxy_support
-#%patch5 -p1 -b .add_nmce_launcher
 %patch10 -p1 -b .wpa
 %patch14 -p1 -b .hidden_networks
 %patch15 -p1 -b .proxy_conf
@@ -204,18 +201,9 @@ This is the Sugar Web Services. Right now, only Teacher.
 %patch23 -p1 -b .fix_sugar_stop
 %patch26 -p1 -b .hidden_network_reorg
 %patch27 -p1 -b .hidden_network_persist
-%patch28 -p1 -b .backup
 %patch30 -p1 -b .hidden_network_3
-%patch31 -p1 -b .help_integration
 %patch32 -p1 -b .conf_webkit1
-%patch40 -p1 -b .missing_batch_options
-%patch41 -p1 -b .error_open_palette
-%patch42 -p1 -b .microformat_cache
 %patch43 -p1 -b .hide_password
-%patch44 -p1 -b .updater_1
-%patch45 -p1 -b .updater_2
-%patch46 -p1 -b .updater_3
-%patch47 -p1 -b .updater_4
 
 %build
 # need run it again to include new files
@@ -226,7 +214,7 @@ make
 %install
 export GCONF_DISABLE_MAKEFILE_SCHEMA_INSTALL=1
 make install DESTDIR=%{buildroot}
-mkdir %{buildroot}/%{_datadir}/sugar/activities
+mkdir -p %{buildroot}/%{_datadir}/sugar/activities
 unset GCONF_DISABLE_MAKEFILE_SCHEMA_INSTALL
 
 %find_lang %{name}
@@ -259,36 +247,49 @@ if (update-mime-database -v &> /dev/null); then
   update-mime-database "%{_datadir}/mime" > /dev/null
 fi
 
+if [ $1 -eq 0 ] ; then
+  /usr/bin/glib-compile-schemas %{_datadir}/glib-2.0/schemas &> /dev/null || :
+fi
+
+%posttrans
+  /usr/bin/glib-compile-schemas %{_datadir}/glib-2.0/schemas &> /dev/null || :
+
 %files -f %{name}.lang
 %doc COPYING
-
 %config %{_sysconfdir}/dbus-1/system.d/nm-user-settings.conf
 %config %{_sysconfdir}/gconf/schemas/sugar.schemas
-
-%dir %{_datadir}/sugar
-%dir %{_datadir}/sugar/activities
-%{_datadir}/sugar/*
-
+%{_bindir}/sugar*
+%{_datadir}/GConf/gsettings/sugar-schemas.convert
+%{_datadir}/glib-2.0/schemas/org.sugarlabs.gschema.xml
+%{_datadir}/mime/packages/sugar.xml
+%{_datadir}/xsessions/sugar.desktop
 
 %{python_sitelib}/*
 
-%{_datadir}/xsessions/sugar.desktop
+%dir %{_datadir}/sugar
+%dir %{_datadir}/sugar/activities
+%dir %{_datadir}/sugar/extensions
+%dir %{_datadir}/sugar/extensions/cpsection
 
-%{_bindir}/*
-%exclude %{_bindir}/sugar-emulator
-%config(noreplace) %{_datadir}/sugar/data/activities.defaults
-%dir %{_datadir}/sugar/extensions/cpsection/
-%exclude %{_datadir}/sugar/extensions/cpsection/[b-z]*
+%{_datadir}/sugar/data
+%{_datadir}/sugar/extensions/deviceicon
+%{_datadir}/sugar/extensions/globalkey
+%{_datadir}/sugar/extensions/webservice
+%{_datadir}/sugar/extensions/cpsection/*.py*
 %{_datadir}/sugar/extensions/cpsection/aboutcomputer
 %{_datadir}/sugar/extensions/cpsection/aboutme
-%exclude %{_datadir}/sugar/extensions/webservice/teachershare
+%exclude %{_datadir}/sugar/extensions/cpsection/[b-z]*
 
-%{_datadir}/mime/packages/sugar.xml
+#%{_datadir}/xsessions/sugar.desktop
+#%{_datadir}/mime/packages/sugar.xml
 
 %files cp-all
 
 %files cp-background
 %{_datadir}/sugar/extensions/cpsection/background
+
+%files cp-backup
+%{_datadir}/sugar/extensions/cpsection/backup
 
 %files cp-datetime
 %{_datadir}/sugar/extensions/cpsection/datetime

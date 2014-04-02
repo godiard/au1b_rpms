@@ -1,22 +1,22 @@
-From 250d18ab1b85d1b2ac4c782c4011e70aabab74e4 Mon Sep 17 00:00:00 2001
+From 41ea3663eb5ee9a42c648e3216e56ac8e742c042 Mon Sep 17 00:00:00 2001
 From: Gonzalo Odiard <godiard@gmail.com>
 Date: Fri, 7 Mar 2014 16:42:51 -0300
-Subject: [PATCH 2/2] Persist the parameters loaded by the user in the network
+Subject: [PATCH] Persist the parameters loaded by the user in the network
  profiles
 
 The pararmeters are stored in GConf
 
 Signed-off-by: Gonzalo Odiard <gonzalo@laptop.org>
 ---
- extensions/cpsection/network/view.py | 60 ++++++++++++++++++++++++++++++------
- src/jarabe/model/network.py          | 55 +++++++++++++++++++++++++++++++--
- 2 files changed, 104 insertions(+), 11 deletions(-)
+ extensions/cpsection/network/view.py | 60 ++++++++++++++++++++++++++++------
+ src/jarabe/model/network.py          | 63 ++++++++++++++++++++++++++++++++++--
+ 2 files changed, 112 insertions(+), 11 deletions(-)
 
 diff --git a/extensions/cpsection/network/view.py b/extensions/cpsection/network/view.py
-index c942889..e1eac79 100644
+index f65659b..0e307af 100644
 --- a/extensions/cpsection/network/view.py
 +++ b/extensions/cpsection/network/view.py
-@@ -454,11 +454,12 @@ class Network(SectionView):
+@@ -456,11 +456,12 @@ class Network(SectionView):
                  index = len(option_sets) - 1
                  network_profiles_index[network_profile['title']] = index
  
@@ -33,7 +33,7 @@ index c942889..e1eac79 100644
  
          self._hidden_network_params_box = Gtk.VBox()
          self._hidden_network_params_box.show()
-@@ -466,13 +467,14 @@ class Network(SectionView):
+@@ -468,13 +469,14 @@ class Network(SectionView):
                                        False, 0)
  
          # _select_hidden_network_profile need the box already created
@@ -52,7 +52,7 @@ index c942889..e1eac79 100644
          create_connection_btn.connect('clicked', self.__connect_hidden_net_cb)
          btn_box.pack_start(create_connection_btn, False, False, 0)
          box_hidden_network.pack_start(btn_box, False, False, 0)
-@@ -481,6 +483,32 @@ class Network(SectionView):
+@@ -483,6 +485,32 @@ class Network(SectionView):
          workspace.pack_start(box_hidden_network, False, False, 0)
          box_hidden_network.show()
  
@@ -85,7 +85,7 @@ index c942889..e1eac79 100644
      def _select_hidden_network_profile(self, combo_setting_box):
          giter = combo_setting_box.combo_box.get_active_iter()
          new_box = combo_setting_box.combo_box.get_model().get(giter, 2)[0]
-@@ -493,6 +521,14 @@ class Network(SectionView):
+@@ -495,6 +523,14 @@ class Network(SectionView):
          self._hidden_conn_manager.selected_profile = \
              combo_setting_box.combo_box.get_model().get(giter, 3)[0]
  
@@ -100,7 +100,7 @@ index c942889..e1eac79 100644
      def __connect_hidden_net_cb(self, button):
  
          profile = self._hidden_conn_manager.selected_profile
-@@ -504,6 +540,7 @@ class Network(SectionView):
+@@ -506,6 +542,7 @@ class Network(SectionView):
  
              # get the values from all the entries
              current_box = self._hidden_network_params_box.get_children()[0]
@@ -108,7 +108,7 @@ index c942889..e1eac79 100644
              for child in current_box.get_children():
                  # child is the SettingBox
                  entry = child.get_children()[1]
-@@ -511,8 +548,13 @@ class Network(SectionView):
+@@ -513,8 +550,13 @@ class Network(SectionView):
                  logging.error('property %s value %s', property_name,
                                entry.get_text())
                  profile[property_name] = entry.get_text()
@@ -122,7 +122,7 @@ index c942889..e1eac79 100644
              self._hidden_conn_manager.create_and_connect_by_profile()
  
      def _add_proxy_section(self, workspace):
-@@ -664,7 +706,7 @@ class Network(SectionView):
+@@ -666,7 +708,7 @@ class Network(SectionView):
  
          # if a profile was selected update the combo value
          self._proxy_profile_name = self._model.get_proxy_profile_name()
@@ -132,10 +132,10 @@ index c942889..e1eac79 100644
                  self._proxy_profile_name != '':
              if self._proxy_profile_name in proxy_profiles_index:
 diff --git a/src/jarabe/model/network.py b/src/jarabe/model/network.py
-index 18ed79d..49adba6 100644
+index e280485..6ef29b6 100644
 --- a/src/jarabe/model/network.py
 +++ b/src/jarabe/model/network.py
-@@ -614,14 +614,29 @@ class HiddenNetworkManager():
+@@ -618,14 +618,29 @@ class HiddenNetworkManager():
          self._netmgr.GetDevices(reply_handler=self.__get_devices_reply_cb,
                                  error_handler=self.__get_devices_error_cb)
  
@@ -167,11 +167,13 @@ index 18ed79d..49adba6 100644
  
      def __get_devices_reply_cb(self, devices_o):
          logging.debug('__get_devices_reply_cb len(devices) = %d',
-@@ -649,6 +664,13 @@ class HiddenNetworkManager():
+@@ -653,6 +668,15 @@ class HiddenNetworkManager():
  
      def create_and_connect_by_ssid(self, ssid):
          logging.debug('create_and_connect_by_ssid ssid=%s', ssid)
 +        # save in gconf
++        # DEPRECATED
++        from gi.repository import GConf
 +        client = GConf.Client.get_default()
 +        client.set_string(
 +            '/desktop/sugar/extensions/network/hidden_network_profile', '')
@@ -181,11 +183,13 @@ index 18ed79d..49adba6 100644
          connection = find_connection_by_ssid(ssid)
          if connection is None:
              logging.error('connection is None')
-@@ -694,6 +716,14 @@ class HiddenNetworkManager():
+@@ -698,6 +722,16 @@ class HiddenNetworkManager():
              logging.error('No profile selected')
              return
  
 +        # save in gconf
++        # DEPRECATED
++        from gi.repository import GConf
 +        client = GConf.Client.get_default()
 +        client.set_string(
 +            '/desktop/sugar/extensions/network/hidden_network_profile',
@@ -196,11 +200,13 @@ index 18ed79d..49adba6 100644
          profile = self.selected_profile
          connection = find_connection_by_ssid(profile['connection.id'])
          if connection is None:
-@@ -742,6 +772,27 @@ class HiddenNetworkManager():
+@@ -746,6 +780,31 @@ class HiddenNetworkManager():
                  connection.get_path(),
                  self._active_device, '/')
  
 +    def store_requested_parameters(self, requested_parameters):
++        # DEPRECATED
++        from gi.repository import GConf
 +        client = GConf.Client.get_default()
 +        profiles_path = '/desktop/sugar/extensions/network/profiles'
 +        for parameter in requested_parameters:
@@ -211,6 +217,8 @@ index 18ed79d..49adba6 100644
 +                               parameter), self.selected_profile[parameter])
 +
 +    def load_requested_parameters(self, profile_title):
++        # DEPRECATED
++        from gi.repository import GConf
 +        requested_parameters = {}
 +        client = GConf.Client.get_default()
 +        entries = client.all_entries(
