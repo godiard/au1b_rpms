@@ -1,14 +1,12 @@
 Summary: Artwork for Sugar look-and-feel
 Name: sugar-artwork
-Version: 0.99.2
+Version: 0.101
 Release: 1.olpcau
 URL: http://sugarlabs.org
 Group: User Interface/Desktops
 License: LGPLv2+
-Source0: sugar-artwork-0.99.2.tar
+Source0: sugar-artwork-0.101.tar
 Patch0: 0001-new-adhoc-icons.patch
-Patch1: 0001-add-age-gender-icons.patch
-Patch2: 0002-new-icons-for-age-gender.patch
 
 BuildRequires: libtool
 BuildRequires: gtk2-devel
@@ -29,8 +27,6 @@ look and feel.
 %prep
 %setup -q
 %patch0 -p1 -b .add_hoc
-%patch1 -p1 -b .age_icons
-%patch2 -p1 -b .add_icons_2
 
 %build
 ./autogen.sh
