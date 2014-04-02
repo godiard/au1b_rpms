@@ -3,7 +3,7 @@
 Summary: Constructionist learning platform
 Name:    sugar
 Version: 0.100.1
-Release: 11.olpcau
+Release: 12.olpcau
 URL:     http://sugarlabs.org/
 License: GPLv2+
 Group:   User Interface/Desktops
@@ -15,7 +15,6 @@ Patch0:  sugar-gnomekeyring.patch
 Patch1:  0001-add-age-and-gender-to-intro-and-aboutme-section-of-c.patch
 Patch2:  0001-add-dbus-method-to-update-favorites.patch
 Patch4:  0002-Add-proxy-configuration-support-to-Network-Control-P.patch
-#Patch5:  0003-Control-Panel-Add-aoption-to-launch-the-network-mana.patch
 Patch10: 0010-WPA-enterprise-feature.patch
 Patch14: 0001-Add-section-to-configure-hidden-networks.patch
 Patch15: 0001-Implement-configuration-of-proxy-using-profile-files.patch
@@ -41,6 +40,14 @@ Patch44: 0001-Show-a-error-message-if-the-activity-updater-can-t-c.patch
 Patch45: 0001-Microformat-updater-fix-parser.patch
 Patch46: 0001-The-updater-need-reset-the-internal-state-when-finis.patch
 Patch47: 0001-Updater-Show-icons-for-new-activities.patch
+
+Patch50: 0001-hidden-network-cp-section-check-if-the-selection-is-.patch
+Patch51: 0002-Use-introspection-instead-of-dbus-to-set-wireless-on.patch
+Patch52: 0003-Do-not-set-the-hidden-network-interface-if-wifi-is-o.patch
+Patch53: 0004-Proxy-cntlm-implementation.patch
+Patch54: 0005-Avoid-block-ui-trying-to-connect-to-hidden-ui-if-not.patch
+Patch55: 0006-Initialize-network-cp-with-proxy-selected-Fixes-XOS-.patch
+
 
 BuildRequires: gettext
 BuildRequires: GConf2-devel
@@ -193,7 +200,6 @@ This is the Sugar Web Services. Right now, only Teacher.
 %patch1 -p1 -b .age_page
 %patch2 -p1 -b .add_dbus_method
 %patch4 -p1 -b .proxy_support
-#%patch5 -p1 -b .add_nmce_launcher
 %patch10 -p1 -b .wpa
 %patch14 -p1 -b .hidden_networks
 %patch15 -p1 -b .proxy_conf
@@ -216,6 +222,14 @@ This is the Sugar Web Services. Right now, only Teacher.
 %patch45 -p1 -b .updater_2
 %patch46 -p1 -b .updater_3
 %patch47 -p1 -b .updater_4
+
+%patch50 -p1 -b .network_cp_1
+%patch51 -p1 -b .network_cp_2
+%patch52 -p1 -b .network_cp_3
+%patch53 -p1 -b .network_cp_4
+%patch54 -p1 -b .network_cp_5
+%patch55 -p1 -b .network_cp_6
+
 
 %build
 # need run it again to include new files

@@ -1,0 +1,39 @@
+From f2966656d7b0f68de1db24d1b959c72395e1c636 Mon Sep 17 00:00:00 2001
+From: Gonzalo Odiard <godiard@gmail.com>
+Date: Tue, 11 Mar 2014 11:42:34 -0300
+Subject: [PATCH 1/6] hidden network cp section: check if the selection is None
+
+---
+ extensions/cpsection/network/view.py | 16 ++++++++++------
+ 1 file changed, 10 insertions(+), 6 deletions(-)
+
+diff --git a/extensions/cpsection/network/view.py b/extensions/cpsection/network/view.py
+index 09abc44..bae7dcc 100644
+--- a/extensions/cpsection/network/view.py
++++ b/extensions/cpsection/network/view.py
+@@ -525,12 +525,16 @@ class Network(SectionView):
+             combo_setting_box.combo_box.get_model().get(giter, 3)[0]
+ 
+         # load the values previously stored
+-        stored_parameters = self._hidden_conn_manager.stored_parameters[
+-            self._hidden_conn_manager.selected_profile['title']]
+-        for entry in self._entries_properties.keys():
+-            property_name = self._entries_properties[entry]
+-            if property_name in stored_parameters.keys():
+-                entry.set_text(stored_parameters[property_name])
++        if self._hidden_conn_manager.selected_profile is not None:
++            stored_parameters = self._hidden_conn_manager.stored_parameters[
++                self._hidden_conn_manager.selected_profile['title']]
++            for entry in self._entries_properties.keys():
++                property_name = self._entries_properties[entry]
++                if property_name in stored_parameters.keys():
++                    entry.set_text(stored_parameters[property_name])
++        else:
++            for entry in self._entries_properties.keys():
++                entry.set_text('')
+ 
+     def __connect_hidden_net_cb(self, button):
+ 
+-- 
+1.8.1.4
+

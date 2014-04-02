@@ -1,0 +1,85 @@
+From ad452fed4ff3a3dd58627457902405430b0aa3d1 Mon Sep 17 00:00:00 2001
+From: Gonzalo Odiard <godiard@gmail.com>
+Date: Tue, 11 Mar 2014 14:20:14 -0300
+Subject: [PATCH 2/6] Use introspection instead of dbus to set wireless on/off
+
+---
+ extensions/cpsection/network/model.py | 42 ++++++++---------------------------
+ 1 file changed, 9 insertions(+), 33 deletions(-)
+
+diff --git a/extensions/cpsection/network/model.py b/extensions/cpsection/network/model.py
+index dddc879..0e275e7 100644
+--- a/extensions/cpsection/network/model.py
++++ b/extensions/cpsection/network/model.py
+@@ -23,14 +23,11 @@ from ConfigParser import ConfigParser
+ 
+ from gettext import gettext as _
+ from gi.repository import GConf
++from gi.repository import NMClient
+ 
+ from jarabe.model import network
+ 
+ 
+-_NM_SERVICE = 'org.freedesktop.NetworkManager'
+-_NM_PATH = '/org/freedesktop/NetworkManager'
+-_NM_IFACE = 'org.freedesktop.NetworkManager'
+-
+ KEYWORDS = ['network', 'jabber', 'radio', 'server']
+ 
+ 
+@@ -63,16 +60,9 @@ def set_jabber(server):
+ 
+ def get_radio():
+     try:
+-        bus = dbus.SystemBus()
+-        obj = bus.get_object(_NM_SERVICE, _NM_PATH)
+-        nm_props = dbus.Interface(obj, dbus.PROPERTIES_IFACE)
+-    except dbus.DBusException:
+-        raise ReadError('%s service not available' % _NM_SERVICE)
+-
+-    state = nm_props.Get(_NM_IFACE, 'WirelessEnabled')
+-    if state in (0, 1):
+-        return state
+-    else:
++        nm_client = NMClient.Client()
++        return nm_client.wireless_get_enabled()
++    except:
+         raise ReadError(_('State is unknown.'))
+ 
+ 
+@@ -84,27 +74,13 @@ def set_radio(state):
+     """Turn Radio 'on' or 'off'
+     state : 'on/off'
+     """
+-    if state == 'on' or state == 1:
+-        try:
+-            bus = dbus.SystemBus()
+-            obj = bus.get_object(_NM_SERVICE, _NM_PATH)
+-            nm_props = dbus.Interface(obj, dbus.PROPERTIES_IFACE)
+-        except dbus.DBusException:
+-            raise ReadError('%s service not available' % _NM_SERVICE)
+-        nm_props.Set(_NM_IFACE, 'WirelessEnabled', True)
+-    elif state == 'off' or state == 0:
+-        try:
+-            bus = dbus.SystemBus()
+-            obj = bus.get_object(_NM_SERVICE, _NM_PATH)
+-            nm_props = dbus.Interface(obj, dbus.PROPERTIES_IFACE)
+-        except dbus.DBusException:
+-            raise ReadError('%s service not available' % _NM_SERVICE)
+-        nm_props.Set(_NM_IFACE, 'WirelessEnabled', False)
+-    else:
++    try:
++        state = state or state == 'on' or state == 1
++        nm_client = NMClient.Client()
++        nm_client.wireless_set_enabled(state)
++    except:
+         raise ValueError(_('Error in specified radio argument use on/off.'))
+ 
+-    return 0
+-
+ 
+ def clear_registration():
+     """Clear the registration with the schoolserver
+-- 
+1.8.1.4
+

@@ -1,0 +1,31 @@
+From f01a505c87c2f6a099ffeacee2327df2157a494f Mon Sep 17 00:00:00 2001
+From: Gonzalo Odiard <godiard@gmail.com>
+Date: Tue, 11 Mar 2014 14:26:08 -0300
+Subject: [PATCH 3/6] Do not set the hidden network interface if wifi is off
+
+---
+ extensions/cpsection/network/view.py | 6 ++++--
+ 1 file changed, 4 insertions(+), 2 deletions(-)
+
+diff --git a/extensions/cpsection/network/view.py b/extensions/cpsection/network/view.py
+index bae7dcc..d0ad6ad 100644
+--- a/extensions/cpsection/network/view.py
++++ b/extensions/cpsection/network/view.py
+@@ -839,10 +839,12 @@ class Network(SectionView):
+     def apply(self):
+         for setting in self._proxy_settings.values():
+             setting.apply()
++
+         self._model.set_proxy_profile_name(self._proxy_profile_name)
+ 
+-        if self._hidden_conn_manager.enabled:
+-            self.__connect_hidden_net_cb(None)
++        if self._model.get_radio():
++            if self._hidden_conn_manager.enabled:
++                self.__connect_hidden_net_cb(None)
+ 
+     def _validate(self):
+         if self._jabber_valid and self._radio_valid:
+-- 
+1.8.1.4
+
