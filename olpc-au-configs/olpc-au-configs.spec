@@ -1,7 +1,7 @@
 Summary: Configs needed by the olpc-au image
 Name:    olpc-au-configs
 Version: 0.102
-Release: 1
+Release: 2
 URL:     https://www.laptop.org.au/
 License: LGPL
 Group:   User Interface/Desktops
@@ -110,6 +110,9 @@ glib-compile-schemas %{_datadir}/glib-2.0/schemas
 glib-compile-schemas %{_datadir}/glib-2.0/schemas
 
 %changelog
+* Tue Apr 08 2014 Martin Abente Lahaye <tch@sugarlabs.org> 0.102-2
+- set gsettings missing values
+
 * Thu Mar 13 2014 Martin Abente Lahaye <tch@sugarlabs.org> 0.1-6
 - add role id
 
