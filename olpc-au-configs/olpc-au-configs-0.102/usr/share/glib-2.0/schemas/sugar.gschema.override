@@ -1,9 +1,11 @@
 [org.sugarlabs]
 maximum-number-of-open-activities=4
 show-register=false
+show-logout=false
 
 [org.sugarlabs.font]
 default-face='abc123'
+default-size=7
 
 [org.sugarlabs.update]
 backend='microformat.MicroformatUpdater'
@@ -16,4 +18,11 @@ provider='Telstra'
 plan=2
 apn='telstra.internet'
 
+[org.sugarlabs.power]
+automatic=true
 
+[org.sugarlabs.collaboration]
+jabber-server=''
+
+[org.sugarlabs.user]
+default-nick='disabled'
