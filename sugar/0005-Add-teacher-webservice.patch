@@ -1,7 +1,7 @@
-From 65982d6f4265157b3049b904695d47192eb59ade Mon Sep 17 00:00:00 2001
+From 824c4da79980554b2c00f19cfcd7260cdec67cb3 Mon Sep 17 00:00:00 2001
 From: Gonzalo Odiard <godiard@gmail.com>
 Date: Wed, 25 Sep 2013 15:10:46 -0300
-Subject: [PATCH] Add teacher webservice
+Subject: [PATCH 5/8] Add teacher webservice
 
 Signed-off-by: Walter Bender <walter@sugarlabs.org>
 ---
@@ -24,10 +24,10 @@ Signed-off-by: Walter Bender <walter@sugarlabs.org>
  create mode 100644 extensions/webservice/teachershare/websocket.py
 
 diff --git a/configure.ac b/configure.ac
-index b94f588..33cc227 100644
+index 405cc3e..d345344 100644
 --- a/configure.ac
 +++ b/configure.ac
-@@ -66,6 +66,8 @@ extensions/cpsection/webaccount/Makefile
+@@ -64,6 +64,8 @@ extensions/cpsection/webaccount/Makefile
  extensions/deviceicon/Makefile
  extensions/globalkey/Makefile
  extensions/webservice/Makefile

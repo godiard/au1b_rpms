@@ -3,7 +3,7 @@
 Summary: Constructionist learning platform
 Name:    sugar
 Version: 0.101
-Release: 1.olpcau
+Release: 3.olpcau
 URL:     http://sugarlabs.org/
 License: GPLv2+
 Group:   User Interface/Desktops
@@ -12,25 +12,16 @@ Source0: sugar-0.101.tar
 # from sugar master, last commit is 6a43e14e1cdcbdda97cfd5d8c0cbbff966dfcd0f
 
 Patch0:  sugar-gnomekeyring.patch
-Patch2:  0001-add-dbus-method-to-update-favorites.patch
-Patch4:  0001-Add-proxy-configuration-support-to-Network-Control-P.patch
-Patch10: 0010-WPA-enterprise-feature.patch
-Patch14: 0001-Add-section-to-configure-hidden-networks.patch
-Patch15: 0001-Implement-configuration-of-proxy-using-profile-files.patch
-Patch16: 0002-Make-combo-in-proxy-selection-more-generic.patch
-Patch17: 0001-Ask-in-the-newtwork-panel-options-based-on-connectiv.patch
-Patch18: 0001-Connect-to-a-hidden-network-using-a-profile.patch
 
-Patch19: 0001-Add-teacher-webservice.patch
+Patch1: 0001-Support-WPA-networks.patch
+Patch2: 0002-Add-hidden-networks-support-in-network.py.patch
+Patch3: 0003-Support-hidden-networks-and-connectivity-profiles.patch
+Patch4: 0004-add-dbus-method-to-update-favorites.patch
+Patch5: 0005-Add-teacher-webservice.patch
+Patch6: 0006-Stop-all-the-activities-if-tried-to-shutdown-after-3.patch
+Patch7: 0007-Set-env-variable-to-request-use-webkit1.patch
+Patch8: 0008-Proxy-cntlm-implementation.patch
 
-Patch23: 0001-Stop-all-the-activities-if-tried-to-shutdown-after-3.patch
-
-Patch26: 0001-Move-class-HiddenNetworkManager-to-network.py.patch
-Patch27: 0001-Persist-the-parameters-loaded-by-the-user-in-the-net.patch
-Patch30: 0001-Connect-to-hidden-network-if-needed-at-cp-section-cl.patch
-Patch32: 0001-Set-env-variable-to-request-use-webkit1.patch
-
-Patch43: 0001-Hide-the-password-in-the-cp-network-proxy-section.patch
 
 BuildRequires: gettext
 BuildRequires: GConf2-devel
@@ -189,21 +180,14 @@ This is the Sugar Web Services. Right now, only Teacher.
 %setup -q
 %patch0 -p1 -b .keyring
 
-%patch2 -p1 -b .add_dbus_method
-%patch4 -p1 -b .proxy_support
-%patch10 -p1 -b .wpa
-%patch14 -p1 -b .hidden_networks
-%patch15 -p1 -b .proxy_conf
-%patch16 -p1 -b .sett_combo
-%patch17 -p1 -b .hidden_profile
-%patch18 -p1 -b .hidden_profile2
-%patch19 -p1 -b .teacher_webser
-%patch23 -p1 -b .fix_sugar_stop
-%patch26 -p1 -b .hidden_network_reorg
-%patch27 -p1 -b .hidden_network_persist
-%patch30 -p1 -b .hidden_network_3
-%patch32 -p1 -b .conf_webkit1
-%patch43 -p1 -b .hide_password
+%patch1 -p1 -b .wpa
+%patch2 -p1 -b .hidden_net
+%patch3 -p1 -b .profiles
+%patch4 -p1 -b .dbus_favorites
+%patch5 -p1 -b .teacher
+%patch6 -p1 -b .stop_activities
+%patch7 -p1 -b .webkit1
+%patch8 -p1 -b .cntlm
 
 %build
 # need run it again to include new files

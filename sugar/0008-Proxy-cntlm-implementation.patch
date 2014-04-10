@@ -1,0 +1,290 @@
+From 207238fa3d84887eba95463c06508eea972bcb35 Mon Sep 17 00:00:00 2001
+From: Gonzalo Odiard <godiard@gmail.com>
+Date: Thu, 3 Apr 2014 13:55:27 -0300
+Subject: [PATCH 8/8] Proxy cntlm implementation
+
+In schools in South Australia, is configured a proxy authentication
+based on MS NTLM. We use the service cntlm to proxy locally to this
+remote proxy. To use this, we need have the cntlm rpm installed,
+and a profile defined in /etc/sugar_connection_profiles.ini.
+Sugar create the configuration file needed by cntlm with the
+password hashed by the same service, and restart the service
+to take the config.
+
+Signed-off-by: Gonzalo Odiard <godiard@sugarlabs.org>
+---
+ extensions/cpsection/network/model.py | 121 ++++++++++++++++++++++++++++++++++
+ extensions/cpsection/network/view.py  |  78 +++++++++++++++++++++-
+ 2 files changed, 198 insertions(+), 1 deletion(-)
+
+diff --git a/extensions/cpsection/network/model.py b/extensions/cpsection/network/model.py
+index d715ab4..da09bb6 100644
+--- a/extensions/cpsection/network/model.py
++++ b/extensions/cpsection/network/model.py
+@@ -227,6 +227,127 @@ def get_connectivity_profiles():
+     return connectivity_profiles
+ 
+ 
++def apply_cntlm_configs(user, password, domain, host, port):
++    import sys
++    import subprocess
++    # DEPRECATED
++    from gi.repository import GConf
++    client = GConf.Client.get_default()
++
++    try:
++        # we need create the config file with the password the first time
++        # generate the hash, and create a new config file
++        # with the hash instead of the pass
++
++        # 1) create config file with password
++        temp_file_name = _create_cntlm_config_file(user, password, domain,
++                                                   host, port)
++
++        # 2) generate the hash
++        output = subprocess.check_output([
++            'su', '-c', 'echo %s | /sbin/cntlm -H -c %s' % (password,
++                                                            temp_file_name)])
++        logging.error('first temp config file created %s', temp_file_name)
++        # FIXME: commented for debug
++        #os.unlink(temp_file_name)
++
++        hash_lines = []
++        for line in output.split('\n'):
++            if not line.startswith('Password:'):
++                hash_lines.append(line)
++
++        # 3) create config file with the hash
++        temp_file_name = _create_cntlm_config_file(user, password, domain,
++                                                   host, port, hash_lines)
++        logging.error('second    temp config file created %s', temp_file_name)
++
++        # 4) copy as root to /etc/cntlm.conf
++        subprocess.check_call(['su', '-c',
++                               'cp %s /etc/cntlm.conf' % temp_file_name])
++        # FIXME: commented for debug
++        #os.unlink(temp_file_name)
++
++        # 5) restart the service
++        subprocess.check_call(['su', '-c', 'systemctl restart cntlm.service'])
++
++    except:
++        logging.error('Exception trying to configure cntlm service: %s',
++                      sys.exc_info()[0])
++
++    # save the parameters in gconf
++    client = GConf.Client.get_default()
++    client.set_string('/desktop/sugar/network/proxy/cntlm_user', user)
++    client.set_string('/desktop/sugar/network/proxy/cntlm_password', password)
++    client.set_string('/desktop/sugar/network/proxy/cntlm_domain', domain)
++    client.set_string('/desktop/sugar/network/proxy/cntlm_host', host)
++    client.set_string('/desktop/sugar/network/proxy/cntlm_port', port)
++
++
++def _create_cntlm_config_file(user, password, domain, host, port,
++                              hash_lines=None):
++    import tempfile
++    config_file_content = \
++        'Username	%s\n' \
++        'Domain		%s\n' \
++        'Proxy		%s:%s\n' \
++        'NoProxy		localhost, 127.0.0.*, 10.*, 192.168.*\n' \
++        'Listen		127.0.0.1:3128\n' \
++        'Gateway	yes\n' % (user, domain, host, port)
++
++    with tempfile.NamedTemporaryFile(mode='w+b', delete=False) as temp_config:
++        temp_config.write(config_file_content)
++        # create with hash or password
++        if hash_lines:
++            for line in hash_lines:
++                temp_config.write('%s\n' % line)
++        else:
++            temp_config.write('Password	%s\n' % password)
++
++        file_name = temp_config.name
++
++    return file_name
++
++
++def get_cntlm_parameters():
++    # DEPRECATED
++    from gi.repository import GConf
++    client = GConf.Client.get_default()
++    user = client.get_string('/desktop/sugar/network/proxy/cntlm_user')
++    if user is None:
++        user = ''
++    password = client.get_string(
++        '/desktop/sugar/network/proxy/cntlm_password')
++    if password is None:
++        password = ''
++    domain = client.get_string('/desktop/sugar/network/proxy/cntlm_domain')
++    if domain is None:
++        domain = ''
++    host = client.get_string('/desktop/sugar/network/proxy/cntlm_host')
++    if host is None:
++        host = ''
++    port = client.get_string('/desktop/sugar/network/proxy/cntlm_port')
++    if port is None:
++        port = ''
++    return (user, password, domain, host, port)
++
++
++def get_proxy_profile_type():
++    # DEPRECATED
++    from gi.repository import GConf
++    client = GConf.Client.get_default()
++    return client.get_string('/desktop/sugar/network/proxy/profile_type')
++
++
++def set_proxy_profile_type(profile_type):
++    # DEPRECATED
++    from gi.repository import GConf
++    if profile_type is None:
++        profile_type = ''
++    client = GConf.Client.get_default()
++    client.set_string('/desktop/sugar/network/proxy/profile_type',
++                      profile_type)
++
++
+ def get_proxy_profile_name():
+     # DEPRECATED
+     from gi.repository import GConf
+diff --git a/extensions/cpsection/network/view.py b/extensions/cpsection/network/view.py
+index 880b395..7b550f9 100644
+--- a/extensions/cpsection/network/view.py
++++ b/extensions/cpsection/network/view.py
+@@ -223,6 +223,29 @@ class StringSettingBox(SettingBox):
+         self._entry.set_text('')
+ 
+ 
++class StringBox(SettingBox):
++    """
++    A configuration line for a string not ussing gsettings to store it.
++    """
++    def __init__(self, name, size_group=None, password_field=False):
++        SettingBox.__init__(self, name, size_group)
++
++        self._entry = Gtk.Entry()
++        self.pack_start(self._entry, True, True, 0)
++        self._entry.show()
++        if password_field:
++            self._entry.set_visibility(False)
++
++    def clear(self):
++        self._entry.set_text('')
++
++    def set_text(self, text):
++        self._entry.set_text(text)
++
++    def get_text(self):
++        return self._entry.get_text()
++
++
+ class Network(SectionView):
+     def __init__(self, model, alerts):
+         SectionView.__init__(self)
+@@ -713,8 +736,25 @@ class Network(SectionView):
+         manual_proxy_box.pack_start(self.box_socks, False, False, 0)
+         self.box_socks.show()
+ 
++        # cntlm fields, hidden by default
++        self.box_cntlm_user = StringBox(_('Username:'), size_group)
++        manual_proxy_box.pack_start(self.box_cntlm_user, False, False, 0)
++
++        self.box_cntlm_password = StringBox(_('Password:'), size_group, True)
++        manual_proxy_box.pack_start(self.box_cntlm_password, False, False, 0)
++
++        self.box_cntlm_host = StringBox(_('Host:'), size_group)
++        manual_proxy_box.pack_start(self.box_cntlm_host, False, False, 0)
++
++        self.box_cntlm_port = StringBox(_('Port:'), size_group)
++        manual_proxy_box.pack_start(self.box_cntlm_port, False, False, 0)
++
++        self.box_cntlm_domain = StringBox(_('Domain:'), size_group)
++        manual_proxy_box.pack_start(self.box_cntlm_domain, False, False, 0)
++
+         # if a profile was selected update the combo value
+         self._proxy_profile_name = self._model.get_proxy_profile_name()
++        self._proxy_profile_type = self._model.get_proxy_profile_type()
+         logging.error('Proxy Profile selected %s', self._proxy_profile_name)
+         if self._proxy_profile_name is not None and \
+                 self._proxy_profile_name != '':
+@@ -726,6 +766,7 @@ class Network(SectionView):
+     def _apply_proxy_profile(self, widget, profile):
+         if profile is None:
+             self._proxy_profile_name = ''
++            self._proxy_profile_type = ''
+             # show all the entrys and set default values
+             self.auth_box.set_active(False)
+             self.auth_box.set_checkbox_visible(True)
+@@ -734,6 +775,12 @@ class Network(SectionView):
+             self.box_username.show()
+             self.box_password.clear()
+             self.box_password.show()
++
++            for box in (self.box_cntlm_user, self.box_cntlm_password,
++                        self.box_cntlm_host, self.box_cntlm_port,
++                        self.box_cntlm_domain):
++                box.hide()
++
+             for box in (self.box_http, self.box_https, self.box_ftp,
+                         self.box_socks):
+                 box.show()
+@@ -742,6 +789,18 @@ class Network(SectionView):
+             return
+ 
+         self._proxy_profile_name = profile['title']
++        self._proxy_profile_type = ''
++        if 'proxy_type' in profile:
++            self._proxy_profile_type = profile['proxy_type']
++
++        if self._proxy_profile_type == 'cntlm':
++            (user, password, domain, host,
++             port) = self._model.get_cntlm_parameters()
++            self.box_cntlm_user.set_text(user)
++            self.box_cntlm_password.set_text(password)
++            self.box_cntlm_domain.set_text(domain)
++            self.box_cntlm_host.set_text(host)
++            self.box_cntlm_port.set_text(port)
+ 
+         # load the configuration in the profile
+         self.auth_box.set_active(self._model.parameter_as_boolean(
+@@ -795,10 +854,17 @@ class Network(SectionView):
+         # only show the fields where the value is REQUEST
+         parameter_widget = {'authentication_user': self.box_username,
+                             'authentication_password': self.box_password,
+-                            'http_proxy.host': self.box_http}
++                            'http_proxy.host': self.box_http,
++                            'cntlm.user': self.box_cntlm_user,
++                            'cntlm.password': self.box_cntlm_password,
++                            'cntlm.host': self.box_cntlm_host,
++                            'cntlm.port': self.box_cntlm_port,
++                            'cntlm.domain': self.box_cntlm_domain}
+ 
+         for parameter in parameter_widget.keys():
+             visible = True
++            if 'cntlm' in parameter:
++                visible = False
+             if parameter in profile:
+                 visible = (profile[parameter].upper() == 'REQUEST')
+             if visible:
+@@ -844,6 +910,16 @@ class Network(SectionView):
+             for setting in self._proxy_settings.values():
+                 setting.apply()
+ 
++        self._model.set_proxy_profile_type(self._proxy_profile_type)
++        # set cntlm values
++        if self._proxy_profile_type == 'cntlm':
++            user = self.box_cntlm_user.get_text()
++            password = self.box_cntlm_password.get_text()
++            domain = self.box_cntlm_domain.get_text()
++            host = self.box_cntlm_host.get_text()
++            port = self.box_cntlm_port.get_text()
++            self._model.apply_cntlm_configs(user, password, domain, host, port)
++
+             self._model.set_proxy_profile_name(self._proxy_profile_name)
+ 
+             if self._model.get_radio():
+-- 
+1.8.1.4
+

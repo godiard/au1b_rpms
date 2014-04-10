@@ -1,7 +1,7 @@
-From 81493640bb577fd0d94eb5b4d8bad718c1a2ad53 Mon Sep 17 00:00:00 2001
+From ac4b55330a965d24ee194917993be3ac65eaf292 Mon Sep 17 00:00:00 2001
 From: Walter Bender <walter@sugarlabs.org>
 Date: Fri, 16 Aug 2013 14:44:42 -0400
-Subject: [PATCH] add dbus method to update favorites
+Subject: [PATCH 4/8] add dbus method to update favorites
 
 ---
  src/jarabe/view/service.py | 6 ++++++

@@ -1,20 +1,14 @@
-From bc634c8f6c8d310220eeaf050d5bb94da7fc1b3b Mon Sep 17 00:00:00 2001
+From 2873a2991fadbbe1dd619f143316d5502fe89ae0 Mon Sep 17 00:00:00 2001
 From: Gonzalo Odiard <godiard@gmail.com>
-Date: Wed, 25 Sep 2013 11:25:46 -0300
-Subject: [PATCH 10/18] WPA enterprise feature
+Date: Thu, 3 Apr 2014 08:21:15 -0300
+Subject: [PATCH 1/8] Support WPA networks
 
-This is copied from the destrose patches, cleaned pep8 & pyflakes
-errors, updated to be applied in sugar 0.100, and fixed objectchooser
-use code.
-
-Not tested yet.
-
-Signed-off-by: Gonzalo Odiard <gonzalo@laptop.org>
+Copied from dextrose patches. Not tested.
 ---
  src/jarabe/desktop/keydialog.py    | 246 ++++++++++++++++++++++++++++++++++++-
- src/jarabe/desktop/networkviews.py | 142 ++++++++++++++++++++-
- src/jarabe/model/network.py        |   3 +
- 3 files changed, 383 insertions(+), 8 deletions(-)
+ src/jarabe/desktop/networkviews.py | 152 ++++++++++++++++++++++-
+ src/jarabe/model/network.py        |  24 ++++
+ 3 files changed, 414 insertions(+), 8 deletions(-)
 
 diff --git a/src/jarabe/desktop/keydialog.py b/src/jarabe/desktop/keydialog.py
 index 5d40c67..20cf846 100644
@@ -311,7 +305,7 @@ index 5d40c67..20cf846 100644
      response = key_dialog.get_response_object()
      secrets = None
 diff --git a/src/jarabe/desktop/networkviews.py b/src/jarabe/desktop/networkviews.py
-index 990b8fe..9976c02 100644
+index bfb7982..1bda059 100644
 --- a/src/jarabe/desktop/networkviews.py
 +++ b/src/jarabe/desktop/networkviews.py
 @@ -50,6 +50,92 @@ _OLPC_MESH_ICON_NAME = 'network-mesh'
@@ -449,7 +443,7 @@ index 990b8fe..9976c02 100644
              wireless_security.pairwise = pairwise
              wireless_security.group = group
              return wireless_security
-@@ -374,6 +484,34 @@ class WirelessNetworkView(EventPulsingIcon):
+@@ -374,6 +484,44 @@ class WirelessNetworkView(EventPulsingIcon):
          if wireless_security is not None:
              settings.wireless.security = '802-11-wireless-security'
  
@@ -479,16 +473,54 @@ index 990b8fe..9976c02 100644
 +                else:
 +                    logging.debug('Not setting empty value for key :%s', key)
 +
-+            settings.wpa_eap_setting = key_value_dict
++            eap_security = network.EapSecurity()
++            if 'eap' in key_value_dict:
++                eap_security.eap = key_value_dict['eap']
++            if 'identity' in key_value_dict:
++                eap_security.identity = key_value_dict['identity']
++            if 'password' in key_value_dict:
++                eap_security.password = key_value_dict['password']
++            if 'phase2-auth' in key_value_dict:
++                eap_security.phase2_auth = key_value_dict['phase2-auth']
++
++            settings.wpa_eap_setting = eap_security
 +
          network.add_and_activate_connection(self._device, settings,
                                              self.get_first_ap().model)
  
 diff --git a/src/jarabe/model/network.py b/src/jarabe/model/network.py
-index b171125..44d78f2 100644
+index 1a333b7..4f858c9 100644
 --- a/src/jarabe/model/network.py
 +++ b/src/jarabe/model/network.py
-@@ -516,6 +516,7 @@ class Settings(object):
+@@ -367,6 +367,27 @@ def is_sugar_adhoc_network(ssid):
+     return ssid.startswith('Ad-hoc Network')
+ 
+ 
++class EapSecurity(object):
++
++    def __init__(self):
++        self.eap = None
++        self.identity = None
++        self.password = None
++        self.phase2_auth = None
++
++    def get_dict(self):
++        eap_security = {}
++        if self.eap is not None:
++            eap_security['eap'] = [self.eap]
++        if self.identity is not None:
++            eap_security['identity'] = self.identity
++        if self.password is not None:
++            eap_security['password'] = self.password
++        if self.phase2_auth is not None:
++            eap_security['phase2-auth'] = self.phase2_auth
++        return eap_security
++
++
+ class WirelessSecurity(object):
+     def __init__(self):
+         self.key_mgmt = None
+@@ -518,6 +539,7 @@ class Settings(object):
          self.connection = ConnectionSettings()
          self.ip4_config = None
          self.wireless_security = None
@@ -496,12 +528,12 @@ index b171125..44d78f2 100644
  
          if wireless_cfg is not None:
              self.wireless = wireless_cfg
-@@ -531,6 +532,8 @@ class Settings(object):
+@@ -533,6 +555,8 @@ class Settings(object):
                  self.wireless_security.get_dict()
          if self.ip4_config is not None:
              settings['ipv4'] = self.ip4_config.get_dict()
 +        if self.wpa_eap_setting is not None:
-+            settings['802-1x'] = self.wpa_eap_setting
++            settings['802-1x'] = self.wpa_eap_setting.get_dict()
          return settings
  
  

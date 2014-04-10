@@ -1,7 +1,8 @@
-From 869d2617bea245039eb5abfc9c011a5714e95498 Mon Sep 17 00:00:00 2001
+From 31c0b06a652121bb58683010a89687b1c5058da3 Mon Sep 17 00:00:00 2001
 From: Gonzalo Odiard <godiard@gmail.com>
 Date: Fri, 1 Nov 2013 12:52:19 -0300
-Subject: [PATCH] Stop all the activities if tried to shutdown after 30 seconds
+Subject: [PATCH 6/8] Stop all the activities if tried to shutdown after 30
+ seconds
 
 When a activity crashed or can't close properly, like the actual version
 of Terminal Sugar can't logout or shutdown the computer.
@@ -36,10 +37,10 @@ index bb42dd6..0620252 100644
          if len(self._shell_model) > 0:
              self._shutdown_tries += 1
 diff --git a/src/jarabe/model/shell.py b/src/jarabe/model/shell.py
-index 9de1f70..1a34797 100644
+index f67e31d..4cf3ef5 100644
 --- a/src/jarabe/model/shell.py
 +++ b/src/jarabe/model/shell.py
-@@ -778,6 +778,11 @@ class ShellModel(GObject.GObject):
+@@ -753,6 +753,11 @@ class ShellModel(GObject.GObject):
      def has_modal(self):
          return self._modal_dialogs_counter > 0
  

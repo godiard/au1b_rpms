@@ -1,7 +1,7 @@
-From 8768c2442df548ac4252f38732f2059993a4590b Mon Sep 17 00:00:00 2001
+From fa0ae262c1f3fd0e56092ab020a587a121d020f6 Mon Sep 17 00:00:00 2001
 From: Gonzalo Odiard <godiard@gmail.com>
 Date: Fri, 27 Dec 2013 18:32:04 -0300
-Subject: [PATCH] Set env variable to request use webkit1
+Subject: [PATCH 7/8] Set env variable to request use webkit1
 
 This is needed to run web activities in F18
 
@@ -11,10 +11,10 @@ Signed-off-by: Gonzalo Odiard <gonzalo@laptop.org>
  1 file changed, 4 insertions(+)
 
 diff --git a/src/jarabe/main.py b/src/jarabe/main.py
-index 5e67892..bf01075 100755
+index 433b360..de8a1ed 100755
 --- a/src/jarabe/main.py
 +++ b/src/jarabe/main.py
-@@ -268,6 +268,10 @@ def _check_profile():
+@@ -371,6 +371,10 @@ def _check_profile():
  
  
  def main():
