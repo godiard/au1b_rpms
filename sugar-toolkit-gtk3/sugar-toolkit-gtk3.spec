@@ -3,7 +3,7 @@
 Summary: Sugar toolkit GTK+ 3
 Name:    sugar-toolkit-gtk3
 Version: 0.101
-Release: 1.olpcau
+Release: 2.olpcau
 URL:     http://wiki.laptop.org/go/Sugar
 Source0: sugar-toolkit-gtk3-0.101.tar
 
