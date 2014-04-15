@@ -1,7 +1,7 @@
 Summary: Configs needed by the olpc-au image
 Name:    olpc-au-configs
 Version: 0.102
-Release: 2
+Release: 3
 URL:     https://www.laptop.org.au/
 License: LGPL
 Group:   User Interface/Desktops
