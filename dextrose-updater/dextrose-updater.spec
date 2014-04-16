@@ -47,7 +47,7 @@ rm -rf $RPM_BUILD_DIR/%{name}-%{version}
 %doc 
 
 /usr/sbin/dextrose-updater
-/etc/sysconfig/dextrose-updater
+%config(noreplace) /etc/sysconfig/dextrose-updater
 /etc/NetworkManager/dispatcher.d/dextrose-updater-ifup
 
 %changelog
