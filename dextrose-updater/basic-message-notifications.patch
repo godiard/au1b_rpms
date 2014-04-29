@@ -1,0 +1,66 @@
+From cbe0ee77c4db2f92a7c6411040325bac29d1594b Mon Sep 17 00:00:00 2001
+From: Martin Abente Lahaye <tch@sugarlabs.org>
+Date: Mon, 28 Apr 2014 16:45:20 -0400
+Subject: [PATCH] Basic message notifications
+
+Fuse reboot_pkgs and relogin_pkgs lists in just one list. As we
+do not enable relogin option.
+
+Always send a notification to the user, but differenciate between
+reboot and no-reboot scenario.
+
+Update dbus signal information.
+
+Signed-off-by: Martin Abente Lahaye <tch@sugarlabs.org>
+---
+ dextrose-updater | 21 +++++++--------------
+ 1 file changed, 7 insertions(+), 14 deletions(-)
+
+diff --git a/dextrose-updater b/dextrose-updater
+index 147e926..f04ecb4 100755
+--- a/dextrose-updater
++++ b/dextrose-updater
+@@ -90,8 +90,7 @@ rm -f ${stampfile}
+ echo "$(date)" >> ${logfile}
+ echo -e "\tRepositories:" ${DEXTROSE_YUM_REPO} >> ${logfile}
+ 
+-reboot_pkgs="kernel kernel-firmware"
+-relogin_pkgs="sugar sugar-artwork sugar-base sugar-datastore sugar-presence-service sugar-toolkit"
++reboot_pkgs="kernel kernel-firmware sugar sugar-artwork sugar-base sugar-datastore sugar-presence-service sugar-toolkit sugar-toolkit-gtk3"
+ 
+ yum="/usr/bin/yum --disablerepo=* --skip-broken --quiet"
+ for i in $DEXTROSE_YUM_REPO; do
+@@ -130,7 +129,6 @@ parse() {
+ }
+ 
+ need_reboot=$(parse ${reboot_pkgs})
+-need_relogin=$(parse ${relogin_pkgs})
+ 
+ /usr/bin/yum clean all
+ echo -e "\tPackages to update:" ${to_update} >> ${logfile}
+@@ -139,16 +137,11 @@ to_update=$(updates)
+ [ $? -ne 0 ] && abort
+ touch ${stampfile}
+ 
+-if [ "${need_reboot}" ]; then
+-    if [ "${need_reboot}" != "$(parse ${reboot_pkgs})" ]; then
++if [ "${need_reboot}" ]
++then
+         echo -e "\tNeed to reboot..." >> ${logfile}
+-        dbus-send --system /org/sugarlabs/system org.sugarlabs.system.Reboot
+-    fi
+-fi
+-
+-if [ "${need_relogin}" ]; then
+-    if [ "${need_relogin}" != "$(parse ${relogin_pkgs})" ]; then
+-        echo -e "\tNeed to relogin..." >> ${logfile}
+-        dbus-send --system /org/sugarlabs/system org.sugarlabs.system.Relogin
+-    fi
++        dbus-send --system /org/dextrose/updater org.dextrose.updater.UpdatedReboot
++else
++        echo -e "\tNo need to reboot..." >> ${logfile}
++        dbus-send --system /org/dextrose/updater org.dextrose.updater.Updated
+ fi
+-- 
+1.8.3.1
+
