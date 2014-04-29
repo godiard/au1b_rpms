@@ -1,7 +1,7 @@
 Summary: Configs needed by the olpc-au image
 Name:    olpc-au-configs
 Version: 0.1
-Release: 9
+Release: 10
 URL:     https://www.laptop.org.au/
 License: LGPL
 Group:   User Interface/Desktops
@@ -32,6 +32,7 @@ cp -r %{_builddir}/%{name}-%{version}/* %{buildroot}
 %files
 %{_sysconfdir}/*
 %{_datadir}/sugar/licenses/*
+%{_datadir}/sugar/data/browse/*
 %{_datadir}/plymouth/themes/olpc/custom.png
 
 %post
@@ -102,6 +103,12 @@ gconftool-2 --direct --config-source xml:readwrite:/etc/gconf/gconf.xml.defaults
 # hide Register menu in Sugar
 gconftool-2 --direct --config-source=xml:readwrite:/etc/gconf/gconf.xml.defaults \
     -s -t bool /desktop/sugar/show_register false
+
+# Browse home page
+gconftool-2 --direct --config-source=xml:readwrite:/etc/gconf/gconf.xml.defaults \
+    -s -t string /desktop/sugar/browser/home_page "file:///usr/share/sugar/data/browse/index.html"
+
+
 
 %changelog
 * Thu Mar 13 2014 Martin Abente Lahaye <tch@sugarlabs.org> 0.1-6
