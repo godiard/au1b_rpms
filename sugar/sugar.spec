@@ -3,13 +3,13 @@
 Summary: Constructionist learning platform
 Name:    sugar
 Version: 0.101
-Release: 3.olpcau
+Release: 4.olpcau
 URL:     http://sugarlabs.org/
 License: GPLv2+
 Group:   User Interface/Desktops
 Source0: sugar-0.101.tar
 
-# from sugar master, last commit is 6a43e14e1cdcbdda97cfd5d8c0cbbff966dfcd0f
+# from sugar master, last commit is fef65f87b0b163ca2a2d4711df23b6c59736d35d
 
 Patch0:  sugar-gnomekeyring.patch
 
