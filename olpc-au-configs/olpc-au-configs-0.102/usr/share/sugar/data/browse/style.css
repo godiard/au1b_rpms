@@ -1,0 +1,39 @@
+@font-face {
+	font-family: "abc123";
+	src: url(assets/font/abc123.ttf);
+}
+
+body {
+	font-family: "abc123";
+}
+
+.container {
+	width: 650px;
+	margin: auto;
+	margin-top: 50px;
+	display: none;
+}
+
+.panel {
+	margin: 20px auto;
+	float: left;
+}
+
+.panel-body {
+	width: 250px;
+	height: 230px;
+	margin-bottom: 5px;
+    margin: 0 auto;
+}
+
+.panel-body img {
+	vertical-align: middle;
+	height: 200px;
+	width: 200px;
+	cursor: pointer;
+}
+
+.panel-title {
+	color: #878787;
+	margin-bottom: 2px;
+}
