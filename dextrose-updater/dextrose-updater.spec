@@ -1,6 +1,6 @@
 Name:	dextrose-updater	
-Version:	5
-Release:	10.olpcau%{?dist}
+Version:	5.102
+Release:	1.olpcau%{?dist}
 Summary:	A yum based updater for sugar-dextrose. Updates the sugar-dextrose related packages automatically and emits dbus messages (for the sugar notification system, if installed)
 
 Group:		Applications/Updating
