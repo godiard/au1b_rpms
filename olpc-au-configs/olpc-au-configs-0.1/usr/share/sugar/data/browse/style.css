@@ -1,14 +1,9 @@
-@font-face {
-	font-family: "abc123";
-	src: url(assets/font/abc123.ttf);
-}
-
 body {
 	font-family: "abc123";
 }
 
 .container {
-	width: 650px;
+	width: 500px;
 	margin: auto;
 	margin-top: 50px;
 	display: none;
