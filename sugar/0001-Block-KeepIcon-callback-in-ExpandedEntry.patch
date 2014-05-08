@@ -1,0 +1,61 @@
+From 9a52c74383ef599cea7928d4f634e2a436fc6c18 Mon Sep 17 00:00:00 2001
+From: Martin Abente Lahaye <tch@sugarlabs.org>
+Date: Tue, 6 May 2014 12:28:37 -0400
+Subject: [PATCH] Block KeepIcon callback in ExpandedEntry
+
+When updating ExpandedEntry widgets to render a new journal
+entry, it updates the state of the KeepIcon.
+
+If the previous entry that was rendered in the ExpandedEntry
+had a different value for keep, then it will trigger a toggle
+event, since both uses the sake KeepIcon widget.
+
+This callback is processed right away, so the other widgets still
+contain previous journal entry values, and since this callback
+triggers a metadata update, the old journal entry values are store
+in the the new journal entry metadata, and get mixed.
+
+Fixes #4770
+
+Signed-off-by: Martin Abente Lahaye <tch@sugarlabs.org>
+---
+ src/jarabe/journal/expandedentry.py | 8 +++++---
+ 1 file changed, 5 insertions(+), 3 deletions(-)
+
+diff --git a/src/jarabe/journal/expandedentry.py b/src/jarabe/journal/expandedentry.py
+index 13e9291..ee52131 100644
+--- a/src/jarabe/journal/expandedentry.py
++++ b/src/jarabe/journal/expandedentry.py
+@@ -231,7 +231,7 @@ class ExpandedEntry(Gtk.EventBox):
+         body.pack_start(second_column, True, True, 0)
+ 
+         # Header
+-        self._keep_icon = self._create_keep_icon()
++        self._keep_icon, self._keep_sid = self._create_keep_icon()
+         header.pack_start(self._keep_icon, False, False, style.DEFAULT_SPACING)
+ 
+         self._icon = None
+@@ -282,7 +282,9 @@ class ExpandedEntry(Gtk.EventBox):
+             return
+         self._metadata = metadata
+ 
++        self._keep_icon.handler_block(self._keep_sid)
+         self._keep_icon.set_active(int(metadata.get('keep', 0)) == 1)
++        self._keep_icon.handler_unblock(self._keep_sid)
+ 
+         self._icon = self._create_icon()
+         for child in self._icon_box.get_children():
+@@ -319,8 +321,8 @@ class ExpandedEntry(Gtk.EventBox):
+ 
+     def _create_keep_icon(self):
+         keep_icon = KeepIcon()
+-        keep_icon.connect('toggled', self._keep_icon_toggled_cb)
+-        return keep_icon
++        keep_sid = keep_icon.connect('toggled', self._keep_icon_toggled_cb)
++        return keep_icon, keep_sid
+ 
+     def _create_icon(self):
+         icon = CanvasIcon(file_name=misc.get_icon_name(self._metadata))
+-- 
+1.9.0
+

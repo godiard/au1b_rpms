@@ -3,7 +3,7 @@
 Summary: Constructionist learning platform
 Name:    sugar
 Version: 0.100.1
-Release: 12.olpcau
+Release: 13.olpcau
 URL:     http://sugarlabs.org/
 License: GPLv2+
 Group:   User Interface/Desktops
@@ -48,6 +48,10 @@ Patch53: 0004-Proxy-cntlm-implementation.patch
 Patch54: 0005-Avoid-block-ui-trying-to-connect-to-hidden-ui-if-not.patch
 Patch55: 0006-Initialize-network-cp-with-proxy-selected-Fixes-XOS-.patch
 
+Patch56: 0001-Block-KeepIcon-callback-in-ExpandedEntry.patch
+
+Patch57: 0001-Remember-last-ad-hoc-used.patch
+Patch58: 0002-Make-ad-hoc-autoconnnect-optional.patch
 
 BuildRequires: gettext
 BuildRequires: GConf2-devel
@@ -230,6 +234,10 @@ This is the Sugar Web Services. Right now, only Teacher.
 %patch54 -p1 -b .network_cp_5
 %patch55 -p1 -b .network_cp_6
 
+%patch56 -p1 -b .journal_metadata
+
+%patch57 -p1 -b .adhoc1
+%patch58 -p1 -b .adhoc2
 
 %build
 # need run it again to include new files

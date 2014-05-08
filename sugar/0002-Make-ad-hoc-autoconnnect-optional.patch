@@ -1,0 +1,68 @@
+From ef3f22c067578a654d44404b9e57fb51a2448042 Mon Sep 17 00:00:00 2001
+From: Martin Abente Lahaye <tch@sugarlabs.org>
+Date: Mon, 21 Apr 2014 13:59:27 -0400
+Subject: [PATCH 2/2] Make ad-hoc autoconnnect optional
+
+Add a gconf value to determine whether or not ad-hoc networks
+should autoconnect.
+
+This gconf value will be ignored if the user explicitly connects
+to a ad-hoc network, for the rest of the session. It will be taken
+into account again, if the user explicitly disconnect from the
+ad-hoc network.
+
+Signed-off-by: Martin Abente Lahaye <tch@sugarlabs.org>
+---
+ src/jarabe/model/adhoc.py | 14 +++++++++++++-
+ 1 file changed, 13 insertions(+), 1 deletion(-)
+
+diff --git a/src/jarabe/model/adhoc.py b/src/jarabe/model/adhoc.py
+index 1815543..f275ae2 100644
+--- a/src/jarabe/model/adhoc.py
++++ b/src/jarabe/model/adhoc.py
+@@ -18,6 +18,7 @@ import logging
+ 
+ import dbus
+ import uuid
++from gi.repository import GConf
+ from gi.repository import GObject
+ 
+ from jarabe.model import network
+@@ -50,6 +51,7 @@ class AdHocManager(GObject.GObject):
+                           ([GObject.TYPE_PYOBJECT, GObject.TYPE_PYOBJECT])),
+     }
+ 
++    _AUTOCONNECT_ENABLED = '/desktop/sugar/network/adhoc_autoconnect'
+     _AUTOCONNECT_TIMEOUT = 60
+     _CHANNEL_1 = 1
+     _CHANNEL_6 = 6
+@@ -74,6 +76,9 @@ class AdHocManager(GObject.GObject):
+             if not self._find_connection(channel):
+                 self._add_connection(channel)
+ 
++        client = GConf.Client.get_default()
++        self._autoconnect_enabled = client.get_bool(self._AUTOCONNECT_ENABLED)
++
+     def start_listening(self, device):
+         self._listening_called += 1
+         if self._listening_called > 1:
+@@ -158,8 +163,15 @@ class AdHocManager(GObject.GObject):
+         return False
+ 
+     def _autoconnect_adhoc(self):
+-        """Autoconnect to the last network used during the session.
++        """Autoconnect to the last network used during the session, only
++        if previously connected. If autoconnect is enabled default to
++        the first network.
+         """
++        if self._autoconnect_enabled is False and \
++                self._last_channel is None:
++            logging.debug('autoconnect Sugar Ad-hoc: is not enabled.')
++            return
++
+         self.activate_channel(self._last_channel or self._CHANNEL_1)
+ 
+     def activate_channel(self, channel):
+-- 
+1.8.3.1
+

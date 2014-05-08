@@ -1,0 +1,70 @@
+From 79ff08a89bbd40fc536db3372818b6df15390e69 Mon Sep 17 00:00:00 2001
+From: Martin Abente Lahaye <tch@sugarlabs.org>
+Date: Tue, 15 Apr 2014 11:32:24 -0400
+Subject: [PATCH 1/2] Remember last ad-hoc used
+
+Set _last_channel so it will re-connect to the last
+ad-hoc network it was connected before, during the same
+sugar session.
+
+Unset _last_channel when the user explicitly disconnects
+from the ad-hoc network, so it will forget about the last
+network it was connected during the same sugar session.
+
+Signed-off-by: Martin Abente Lahaye <tch@sugarlabs.org>
+---
+ src/jarabe/model/adhoc.py | 16 +++++-----------
+ 1 file changed, 5 insertions(+), 11 deletions(-)
+
+diff --git a/src/jarabe/model/adhoc.py b/src/jarabe/model/adhoc.py
+index 063a26b..1815543 100644
+--- a/src/jarabe/model/adhoc.py
++++ b/src/jarabe/model/adhoc.py
+@@ -64,6 +64,7 @@ class AdHocManager(GObject.GObject):
+         self._listening_called = 0
+         self._device_state = network.NM_DEVICE_STATE_UNKNOWN
+ 
++        self._last_channel = None
+         self._current_channel = None
+         self._networks = {self._CHANNEL_1: None,
+                           self._CHANNEL_6: None,
+@@ -157,18 +158,9 @@ class AdHocManager(GObject.GObject):
+         return False
+ 
+     def _autoconnect_adhoc(self):
+-        """First we try if there is an Ad-hoc network that is used by other
+-        learners in the area, if not we default to channel 1.
+-
++        """Autoconnect to the last network used during the session.
+         """
+-        if self._networks[self._CHANNEL_1] is not None:
+-            self.activate_channel(self._CHANNEL_1)
+-        elif self._networks[self._CHANNEL_6] is not None:
+-            self.activate_channel(self._CHANNEL_6)
+-        elif self._networks[self._CHANNEL_11] is not None:
+-            self.activate_channel(self._CHANNEL_11)
+-        else:
+-            self.activate_channel(self._CHANNEL_1)
++        self.activate_channel(self._last_channel or self._CHANNEL_1)
+ 
+     def activate_channel(self, channel):
+         """Activate a sugar Ad-hoc network.
+@@ -180,6 +172,7 @@ class AdHocManager(GObject.GObject):
+         connection = self._find_connection(channel)
+         if connection:
+             connection.activate(self._device.object_path)
++            self._last_channel = channel
+ 
+     @staticmethod
+     def _get_connection_id(channel):
+@@ -227,6 +220,7 @@ class AdHocManager(GObject.GObject):
+                         network.NM_SERVICE, network.NM_PATH)
+                     netmgr = dbus.Interface(obj, network.NM_IFACE)
+                     netmgr.DeactivateConnection(connection_o)
++                    self._last_channel = None
+ 
+     def __get_active_connections_error_cb(self, err):
+         logging.error('Error getting the active connections: %s', err)
+-- 
+1.8.3.1
+
