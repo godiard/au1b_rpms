@@ -3,7 +3,7 @@
 Summary: Constructionist learning platform
 Name:    sugar
 Version: 0.100.1
-Release: 13.olpcau
+Release: 14.olpcau.test
 URL:     http://sugarlabs.org/
 License: GPLv2+
 Group:   User Interface/Desktops
@@ -52,6 +52,7 @@ Patch56: 0001-Block-KeepIcon-callback-in-ExpandedEntry.patch
 
 Patch57: 0001-Remember-last-ad-hoc-used.patch
 Patch58: 0002-Make-ad-hoc-autoconnnect-optional.patch
+Patch59: 0001-Fix-EAP-settings.patch
 
 BuildRequires: gettext
 BuildRequires: GConf2-devel
@@ -238,6 +239,7 @@ This is the Sugar Web Services. Right now, only Teacher.
 
 %patch57 -p1 -b .adhoc1
 %patch58 -p1 -b .adhoc2
+%patch59 -p1 -b .eap_fix
 
 %build
 # need run it again to include new files

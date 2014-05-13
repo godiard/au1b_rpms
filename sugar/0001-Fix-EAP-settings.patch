@@ -1,0 +1,29 @@
+From ae33f6e24281d70bddc71a8bd482d56d41c7c28f Mon Sep 17 00:00:00 2001
+From: Gonzalo Odiard <godiard@gmail.com>
+Date: Mon, 12 May 2014 18:07:24 -0300
+Subject: [PATCH] Fix EAP settings
+
+There was a typo [], therefore it was sending a list, instead
+of a string.
+
+Signed-off-by: Martin Abente Lahaye <tch@sugarlabs.org>
+---
+ src/jarabe/model/network.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/jarabe/model/network.py b/src/jarabe/model/network.py
+index 8c34bc2..1aa78b1 100644
+--- a/src/jarabe/model/network.py
++++ b/src/jarabe/model/network.py
+@@ -376,7 +376,7 @@ class EapSecurity(object):
+     def get_dict(self):
+         eap_security = {}
+         if self.eap is not None:
+-            eap_security['eap'] = [self.eap]
++            eap_security['eap'] = self.eap
+         if self.identity is not None:
+             eap_security['identity'] = self.identity
+         if self.password is not None:
+-- 
+1.9.0
+
