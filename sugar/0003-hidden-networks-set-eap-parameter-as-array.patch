@@ -1,0 +1,27 @@
+From 671cea55111206e977b78f96583da3105d8ca118 Mon Sep 17 00:00:00 2001
+From: Gonzalo Odiard <godiard@gmail.com>
+Date: Fri, 16 May 2014 10:11:16 -0300
+Subject: [PATCH 3/3] hidden networks: set eap parameter as array
+
+As we removed the array in 766faa4f42ee9e17bb8e7f11c492d9f31fa09621
+we need add it in the hidden network creation
+---
+ src/jarabe/model/network.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/jarabe/model/network.py b/src/jarabe/model/network.py
+index 35a8660..933bf71 100644
+--- a/src/jarabe/model/network.py
++++ b/src/jarabe/model/network.py
+@@ -766,7 +766,7 @@ class HiddenNetworkManager():
+ 
+                 if settings.wireless_security.key_mgmt == 'wpa-eap':
+                     settings.wpa_eap_setting = EapSecurity()
+-                    settings.wpa_eap_setting.eap = profile['802-1x.eap']
++                    settings.wpa_eap_setting.eap = [profile['802-1x.eap']]
+                     settings.wpa_eap_setting.identity = profile[
+                         '802-1x.identity']
+                     settings.wpa_eap_setting.password = profile[
+-- 
+1.9.0
+

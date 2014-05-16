@@ -1,0 +1,161 @@
+From d166d0ce277fad242323884aa278e5f59c92d9b6 Mon Sep 17 00:00:00 2001
+From: Gonzalo Odiard <godiard@gmail.com>
+Date: Fri, 16 May 2014 15:03:23 -0300
+Subject: [PATCH] hidden networks: Show messges to the user on succes or fail
+
+---
+ extensions/cpsection/network/view.py | 13 ++++++++++-
+ src/jarabe/model/network.py          | 43 +++++++++++++++++++++++++++---------
+ 2 files changed, 45 insertions(+), 11 deletions(-)
+
+diff --git a/extensions/cpsection/network/view.py b/extensions/cpsection/network/view.py
+index 43bdb5d..b761e26 100644
+--- a/extensions/cpsection/network/view.py
++++ b/extensions/cpsection/network/view.py
+@@ -397,11 +397,20 @@ class Network(SectionView):
+             self._connectivity_profiles)
+         if self._hidden_conn_manager.enabled:
+             self._add_hidden_ssid_section(workspace)
++        self._hidden_conn_manager.connect('error',
++                                          self.__hidden_network_error_msg)
++        self._hidden_conn_manager.connect('success', self.__hidden_network_msg)
+ 
+         self._add_proxy_section(workspace)
+ 
+         self.setup()
+ 
++    def __hidden_network_msg(self, hidden_manager, msg):
++        self._connection_status_label.set_text(msg)
++
++    def __hidden_network_error_msg(self, hidden_manager, msg):
++        self._connection_status_label.set_text('ERROR: %s' % msg)
++
+     def _add_hidden_ssid_section(self, workspace):
+         separator_hidden_network = Gtk.HSeparator()
+         workspace.pack_start(separator_hidden_network, False, False, 0)
+@@ -502,10 +511,12 @@ class Network(SectionView):
+                                         self._select_hidden_network_profile)
+ 
+         btn_box = Gtk.HBox()
+-        self.create_connection_btn = Gtk.Button('Connect')
++        self.create_connection_btn = Gtk.Button('Test connection')
+         self.create_connection_btn.connect('clicked',
+                                            self.__connect_hidden_net_cb)
+         btn_box.pack_start(self.create_connection_btn, False, False, 0)
++        self._connection_status_label = Gtk.Label('')
++        btn_box.pack_start(self._connection_status_label, False, False, 10)
+         box_hidden_network.pack_start(btn_box, False, False, 0)
+         btn_box.show_all()
+ 
+diff --git a/src/jarabe/model/network.py b/src/jarabe/model/network.py
+index 933bf71..77f0f8c 100644
+--- a/src/jarabe/model/network.py
++++ b/src/jarabe/model/network.py
+@@ -595,9 +595,15 @@ class SecretsResponse(object):
+         self._error_cb(error)
+ 
+ 
+-class HiddenNetworkManager():
++class HiddenNetworkManager(GObject.GObject):
++
++    __gsignals__ = {
++        'error': (GObject.SignalFlags.RUN_FIRST, None, ([str])),
++        'success': (GObject.SignalFlags.RUN_FIRST, None, ([str])),
++    }
+ 
+     def __init__(self, conn_profiles={}):
++        GObject.GObject.__init__(self)
+         self._active_device = None
+ 
+         client = GConf.Client.get_default()
+@@ -647,6 +653,7 @@ class HiddenNetworkManager():
+             self._check_device(dev_o)
+ 
+     def __get_devices_error_cb(self, err):
++        self.emit('error', err)
+         logging.error('Failed to get devices: %s', err)
+ 
+     def _check_device(self, device_o):
+@@ -658,14 +665,12 @@ class HiddenNetworkManager():
+         if device_type == NM_DEVICE_TYPE_WIFI:
+             self._active_device = device_o
+ 
+-    def _get_device_path_error_cb(self, err):
+-        logging.error('Failed to get device type: %s', err)
+-
+     def create_and_connect_by_ssid(self, ssid):
+         logging.debug('create_and_connect_by_ssid ssid=%s', ssid)
+         if self._active_device is None:
+             logging.error('Error trying to connect to hidden ssid, '
+                           'device not found')
++            self.emit('error', _('Device not found'))
+             return
+         # save in gconf
+         client = GConf.Client.get_default()
+@@ -697,9 +702,16 @@ class HiddenNetworkManager():
+         else:
+             logging.debug('ActivateConnection connection %s device %s',
+                           connection.get_path(), self._active_device)
+-            self._netmgr.ActivateConnection(
+-                connection.get_path(),
+-                self._active_device, '/')
++            try:
++                self._netmgr.ActivateConnection(
++                    connection.get_path(),
++                    self._active_device, '/')
++            except dbus.exceptions.DBusException as e:
++                logging.error("Error doing ActivateConnection '%s'",
++                              e.message)
++                self.emit('error', e.message)
++            else:
++                self.emit('success', _('Connection activated'))
+ 
+     def store_empty_config(self):
+         # save in gconf
+@@ -729,9 +741,11 @@ class HiddenNetworkManager():
+         if self._active_device is None:
+             logging.error('Error trying to connect to hidden ssid by '
+                           'profile, device not found')
++            self.emit('error', _('Device not found'))
+             return
+         if self.selected_profile is None:
+             logging.error('No profile selected')
++            self.emit('error', _('No profile selected'))
+             return
+ 
+         # save in gconf
+@@ -790,9 +804,16 @@ class HiddenNetworkManager():
+         else:
+             logging.debug('ActivateConnection connection %s device %s',
+                           connection.get_path(), self._active_device)
+-            self._netmgr.ActivateConnection(
+-                connection.get_path(),
+-                self._active_device, '/')
++            try:
++                self._netmgr.ActivateConnection(
++                    connection.get_path(),
++                    self._active_device, '/')
++            except dbus.exceptions.DBusException as e:
++                logging.error("Error doing ActivateConnection '%s'",
++                              e.message)
++                self.emit('error', e.message)
++            else:
++                self.emit('success', _('Connection activated'))
+ 
+     def store_requested_parameters(self, requested_parameters):
+         client = GConf.Client.get_default()
+@@ -817,9 +838,11 @@ class HiddenNetworkManager():
+ 
+     def _add_connection_reply_cb(self, netmgr, connection):
+         logging.debug('Added connection: %s', connection)
++        self.emit('success', _('Connection activated'))
+ 
+     def _add_connection_error_cb(self, err):
+         logging.error('Failed to add connection: %s', err)
++        self.emit('error', err)
+ 
+ 
+ def set_connected():
+-- 
+1.9.0
+

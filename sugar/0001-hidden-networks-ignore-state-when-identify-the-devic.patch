@@ -1,0 +1,28 @@
+From 6eb1136e47c1539c664a2c44229e78e3e55228e7 Mon Sep 17 00:00:00 2001
+From: Gonzalo Odiard <godiard@gmail.com>
+Date: Wed, 14 May 2014 13:55:02 -0300
+Subject: [PATCH] hidden networks: ignore state when identify the device
+
+---
+ src/jarabe/model/network.py | 5 +----
+ 1 file changed, 1 insertion(+), 4 deletions(-)
+
+diff --git a/src/jarabe/model/network.py b/src/jarabe/model/network.py
+index af538bc..fe29b37 100644
+--- a/src/jarabe/model/network.py
++++ b/src/jarabe/model/network.py
+@@ -656,10 +656,7 @@ class HiddenNetworkManager():
+         device_type = props.Get(NM_DEVICE_IFACE, 'DeviceType')
+         logging.debug('device_type = %s', device_type)
+         if device_type == NM_DEVICE_TYPE_WIFI:
+-            state = props.Get(NM_DEVICE_IFACE, 'State')
+-            logging.debug('state %s', state)
+-            if state == 100:  # Activated
+-                self._active_device = device_o
++            self._active_device = device_o
+ 
+     def _get_device_path_error_cb(self, err):
+         logging.error('Failed to get device type: %s', err)
+-- 
+1.9.0
+

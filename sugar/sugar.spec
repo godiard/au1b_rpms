@@ -3,7 +3,7 @@
 Summary: Constructionist learning platform
 Name:    sugar
 Version: 0.100.1
-Release: 14.olpcau.test
+Release: 17.olpcau.test
 URL:     http://sugarlabs.org/
 License: GPLv2+
 Group:   User Interface/Desktops
@@ -45,6 +45,9 @@ Patch50: 0001-hidden-network-cp-section-check-if-the-selection-is-.patch
 Patch51: 0002-Use-introspection-instead-of-dbus-to-set-wireless-on.patch
 Patch52: 0003-Do-not-set-the-hidden-network-interface-if-wifi-is-o.patch
 Patch53: 0004-Proxy-cntlm-implementation.patch
+
+# From here, need be ported to 0.102
+
 Patch54: 0005-Avoid-block-ui-trying-to-connect-to-hidden-ui-if-not.patch
 Patch55: 0006-Initialize-network-cp-with-proxy-selected-Fixes-XOS-.patch
 
@@ -53,6 +56,20 @@ Patch56: 0001-Block-KeepIcon-callback-in-ExpandedEntry.patch
 Patch57: 0001-Remember-last-ad-hoc-used.patch
 Patch58: 0002-Make-ad-hoc-autoconnnect-optional.patch
 Patch59: 0001-Fix-EAP-settings.patch
+
+Patch60: 0001-Fix-KeyValuesDialog-cancel.patch
+Patch61: 0002-Fix-KeyValuesDialog-password-visibility.patch
+Patch62: 0001-hidden-networks-Show-password-as-asterisks-part-of-X.patch
+Patch63: 0002-hidden-networks-store-empty-config-if-no-profile-or-.patch
+Patch64: 0001-hidden-networks-add-a-option-None-to-the-combo.patch
+Patch65: 0001-hidden-networks-ignore-state-when-identify-the-devic.patch
+Patch66: 0001-hidden-networks-Add-debug-log.patch
+Patch67: 0002-Fix-KeyDialog-password-visibility-XOS-60.patch
+Patch68: 0003-hidden-networks-set-eap-parameter-as-array.patch
+Patch69: 0001-Fix-WPA2-EAP-dialog-ObjectChooser.patch
+
+Patch70: 0001-hidden-networks-Show-messges-to-the-user-on-succes-o.patch
+Patch71: 0001-Do-not-cache-BuddyMenu-in-favorites-view.patch
 
 BuildRequires: gettext
 BuildRequires: GConf2-devel
@@ -240,6 +257,21 @@ This is the Sugar Web Services. Right now, only Teacher.
 %patch57 -p1 -b .adhoc1
 %patch58 -p1 -b .adhoc2
 %patch59 -p1 -b .eap_fix
+
+%patch60 -p1 -b .net_cp_fix1
+%patch61 -p1 -b .net_cp_fix2
+%patch62 -p1 -b .net_cp_fix3
+%patch63 -p1 -b .net_cp_fix4
+%patch64 -p1 -b .net_cp_fix5
+%patch65 -p1 -b .net_cp_fix6
+
+%patch66 -p1
+%patch67 -p1
+%patch68 -p1
+%patch69 -p1
+%patch70 -p1
+%patch71 -p1
+
 
 %build
 # need run it again to include new files

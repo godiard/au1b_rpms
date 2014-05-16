@@ -1,0 +1,81 @@
+From 14a7be12b28b5df1b30576d073351e95fbcda8b1 Mon Sep 17 00:00:00 2001
+From: Martin Abente Lahaye <tch@sugarlabs.org>
+Date: Fri, 16 May 2014 10:07:47 -0400
+Subject: [PATCH] Fix WPA2-EAP dialog ObjectChooser
+
+The ObjectChooser API changed considerably since the first
+version of this dialog code.
+
+Adapt the dialog code to the new API.
+
+Signed-off-by: Martin Abente Lahaye <tch@sugarlabs.org>
+---
+ src/jarabe/desktop/keydialog.py | 39 +++++++++++++++++++--------------------
+ 1 file changed, 19 insertions(+), 20 deletions(-)
+
+diff --git a/src/jarabe/desktop/keydialog.py b/src/jarabe/desktop/keydialog.py
+index 54450fa..82319d4 100644
+--- a/src/jarabe/desktop/keydialog.py
++++ b/src/jarabe/desktop/keydialog.py
+@@ -29,6 +29,7 @@ import shutil
+ from sugar3 import env
+ from sugar3.graphics.icon import Icon
+ from sugar3.graphics import style
++from sugar3.datastore import datastore
+ from jarabe.model import network
+ from jarabe.journal.objectchooser import ObjectChooser
+ 
+@@ -140,32 +141,30 @@ class NetworkParameters(Gtk.HBox):
+         self._show_picker_cb()
+ 
+     def _show_picker_cb(self):
+-        if not self._want_document:
+-            return
+         chooser = ObjectChooser()
++        chooser.connect('response', self._chooser_response_cb)
++        chooser.show()
+ 
+-        try:
+-            result = chooser.run()
+-            if result == Gtk.ResponseType.ACCEPT:
+-                jobject = chooser.get_selected_object()
+-                if jobject and jobject.file_path:
+-                    file_basename = os.path.basename(
+-                        jobject._metadata._properties['title'])
+-                    self._chooser_button.set_label(file_basename)
++    def _chooser_response_cb(self, chooser, response_id):
++        if response_id == Gtk.ResponseType.ACCEPT:
++            jobject_id = chooser.get_selected_object_id()
++            jobject = datastore.get(jobject_id)
+ 
+-                    profile_path = env.get_profile_path()
+-                    self._entry = os.path.join(profile_path, file_basename)
++            if jobject and jobject.file_path:
++                file_basename = os.path.basename(
++                    jobject._metadata._properties['title'])
++                self._chooser_button.set_label(file_basename)
+ 
+-                    # Remove (older) file, if it exists.
+-                    if os.path.exists(self._entry):
+-                        os.remove(self._entry)
++                profile_path = env.get_profile_path()
++                self._entry = os.path.join(profile_path, file_basename)
+ 
+-                    # Copy the file.
+-                    shutil.copy2(jobject.file_path, self._entry)
++                # Remove (older) file, if it exists.
++                if os.path.exists(self._entry):
++                    os.remove(self._entry)
+ 
+-        finally:
+-            chooser.destroy()
+-            del chooser
++                # Copy the file.
++                shutil.copy2(jobject.file_path, self._entry)
++        chooser.destroy()
+ 
+     def _option_combo_changed_cb(self, widget):
+         it = self._option_combo.get_active_iter()
+-- 
+1.8.3.1
+

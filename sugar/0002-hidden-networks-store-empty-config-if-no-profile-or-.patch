@@ -1,0 +1,54 @@
+From 79a7f5212e9324d9f10ac1a01899c43008207eb7 Mon Sep 17 00:00:00 2001
+From: Gonzalo Odiard <godiard@gmail.com>
+Date: Tue, 13 May 2014 14:51:08 -0300
+Subject: [PATCH 2/2] hidden networks: store empty config if no profile or ssid
+ is selected
+
+---
+ extensions/cpsection/network/view.py | 3 +++
+ src/jarabe/model/network.py          | 8 ++++++++
+ 2 files changed, 11 insertions(+)
+
+diff --git a/extensions/cpsection/network/view.py b/extensions/cpsection/network/view.py
+index e8ec381..1e1bd66 100644
+--- a/extensions/cpsection/network/view.py
++++ b/extensions/cpsection/network/view.py
+@@ -538,6 +538,7 @@ class Network(SectionView):
+         else:
+             # if nothing configured
+             self._combo_setting_box.combo_box.set_active(0)
++            self._hidden_network_name_entry.set_text('')
+ 
+     def _select_hidden_network_profile(self, combo_setting_box):
+         giter = combo_setting_box.combo_box.get_active_iter()
+@@ -570,6 +571,8 @@ class Network(SectionView):
+             if self._hidden_network_name_entry.get_text() != '':
+                 self._hidden_conn_manager.create_and_connect_by_ssid(
+                     self._hidden_network_name_entry.get_text())
++            else:
++                self._hidden_conn_manager.store_empty_config()
+         else:
+ 
+             # get the values from all the entries
+diff --git a/src/jarabe/model/network.py b/src/jarabe/model/network.py
+index 1aa78b1..af538bc 100644
+--- a/src/jarabe/model/network.py
++++ b/src/jarabe/model/network.py
+@@ -702,6 +702,14 @@ class HiddenNetworkManager():
+                 connection.get_path(),
+                 self._active_device, '/')
+ 
++    def store_empty_config(self):
++        # save in gconf
++        client = GConf.Client.get_default()
++        client.set_string(
++            '/desktop/sugar/extensions/network/hidden_network_profile', '')
++        client.set_string(
++            '/desktop/sugar/extensions/network/hidden_network_ssid', '')
++
+     def create_and_connect_by_profile(self):
+         """
+         A profile is a dictionary with a format like this
+-- 
+1.9.0
+
