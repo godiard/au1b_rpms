@@ -1,0 +1,12 @@
+--- a/dextrose-updater.ori	2014-05-20 19:54:51.060316003 +0000
++++ b/dextrose-updater	2014-05-20 19:47:46.170302927 +0000
+@@ -109,7 +109,7 @@
+         0)  exit 0
+             ;;
+         100)
+-            echo ${repos} | awk '/./{print $1 "-" $2}'
++            echo ${repos} | awk '/./{for (i=1;i<=NF;i++) if (i%3==0) print $(i-2)"-"$(i-1)}'
+             exit 0
+             ;;
+         *)  exit 1
+
