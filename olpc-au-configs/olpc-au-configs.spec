@@ -108,7 +108,8 @@ gconftool-2 --direct --config-source=xml:readwrite:/etc/gconf/gconf.xml.defaults
 gconftool-2 --direct --config-source=xml:readwrite:/etc/gconf/gconf.xml.defaults \
     -s -t string /desktop/sugar/browser/home_page "file:///usr/share/sugar/data/browse/index.html"
 
-
+# re-write powerd.conf file with olpcau tweaked version
+cp /etc/powerd/powerd.conf.olpcau /etc/powerd/powerd.conf
 
 %changelog
 * Thu Mar 13 2014 Martin Abente Lahaye <tch@sugarlabs.org> 0.1-6

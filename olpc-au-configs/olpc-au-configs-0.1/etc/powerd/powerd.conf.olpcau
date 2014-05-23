@@ -1,0 +1,115 @@
+#
+# Config file for powerd
+#
+# config_BATTERY_TIME_{DIM,SLEEP,BLANK}
+# config_EBOOK_TIME_{DIM,SLEEP,BLANK}
+# config_PLUGGED_TIME_{DIM,SLEEP,BLANK}
+# These are the time in seconds (measured from last user
+# activity) until a) the laptop screen dims, b) the laptop
+# sleeps, and c) the laptop screen blanks.  All three can be
+# scheduled in any order.  Setting any to '0' suppresses that
+# action.
+#
+# config_MAX_SLEEP_BEFORE_SHUTDOWN
+#  Once the laptop sleeps and the screen is blank, it will shut
+#  down after this amount of time.  '0' will prevent auto-shutdown.
+#
+# config_ALLOW_SHUTDOWN_WHEN_PLUGGED
+#  If this is disabled, the laptop will never automatically shut
+#  down when using external power.  (It may still sleep, however.)
+#
+# config_INITIAL_BRIGHT_LEVEL
+# This sets the the initial brightness of the display, at boot time.
+# The range is 0-15.  The backlight consumes 1 watt at full brightness.
+#
+# config_IDLE_DIM_LEVEL
+#  Brightness level when the screen is automatically dimmed.  Set
+#  this to 15 to prevent dimming.  Set this to 0 to allow the
+#  backlight to go off completely.
+#
+# config_CONFIRM_SECONDS
+#  How long the shutdown/suspend confirmation splash screen stays
+#  visible before the laptop automatically suspends.  If this is
+#  zero, there will be no splash screen:  the laptop will suspend
+#  immediately when the button is pushed.
+#
+# config_UNFREEZE_SECONDS
+#  How long after starting will powerd wait before gratuitously
+#  unfreezing the DCON, to activate the display.  Note that under normal
+#  circumstances, the display will be unfrozen automatically at the correct
+#  time during desktop environment startup, and if the desktop fails to launch,
+#  the event.d script will unfreeze the DCON. This can be seen as an emergency
+#  fallback for when all else fails.
+#
+# config_MESH_DURING_SUSPEND  (only on XO-1)
+#  This controls whether the wireless remains powered while the
+#  laptop is fully suspended (i.e., sleeping with a dark screen).
+#  The only reason to set this to "yes" is if you want the laptop
+#  to forward packets for other mesh users while you're not using it.
+#
+# config_WAKE_ON_WLAN
+#  Controls whether a packet destined for your laptop will wake it
+#  up from idle suspend, in much the same way that a keystroke or
+#  mouse movement will wake it up.  Also see the following option:
+#
+# config_WLAN_WAKE_FROM_BLANK_IDLE_SLEEP
+#  Controls whether the config_WAKE_ON_WLAN setting (above) also
+#  applies once the screen has blanked.  Laptops which are
+#  regularly accessed remotely should probably set this to "yes",
+#  otherwise it saves power to leave it set to "no".
+#
+# config_KEYPRESS_WAKE_FROM_BLANK_IDLE_SLEEP
+#  If the screen is blank and the laptop has suspended due to the
+#  user being idle, then setting this to "yes" will let user
+#  activity wake the laptop.  Otherwise, being suspended with a
+#  blank screen (which is visually the same as a power
+#  button-induced sleep) will require the power button to wake. 
+#  If you like having the keyboard completely disabled during any
+#  "dark" sleep, then set this to "no".
+#
+# config_CPU_IDLE_LIMIT
+#  If the cpu is idle less than this percentage, then the laptop
+#  won't suspend.
+#
+# config_SLEEP_WHEN_LID_CLOSED
+#  This is normally left enabled, and causes the laptop to go to
+#  sleep when closed.  If disabled, it will stay awake when the
+#  lid is closed, and will only sleep because of other timeouts.
+#
+# config_WAKE_WHEN_LID_OPENED
+#  Controls whether the laptop wakes when the lid is opened.  If
+#  multiple laptops are stacked on top of or next to one another,
+#  their lid magnets may interfere, causing them to think their
+#  lids are open when they are not, thereby waking up.  This
+#  setting (if disabled) prevents that from happening.
+#
+# config_PWRLOG_INTERVAL
+# config_PWRLOG_DIR 
+# config_PWRLOG_LOGSIZE
+# config_PWRLOG_LOGDIRSIZE
+#  Refer to the notes in the powerd script itself for descriptions
+#  of how these control powerd's optional power logging.
+#
+config_CPU_IDLE_LIMIT="85"
+config_BATTERY_TIME_DIM="180"
+config_BATTERY_TIME_SLEEP="420"
+config_BATTERY_TIME_BLANK="420"
+config_EBOOK_TIME_DIM="180"
+config_EBOOK_TIME_SLEEP="420"
+config_EBOOK_TIME_BLANK="420"
+config_PLUGGED_TIME_DIM="180"
+config_BATTERY_TIME_SLEEP="420"
+config_PLUGGED_TIME_BLANK="420"
+config_INITIAL_BRIGHT_LEVEL="12"
+config_IDLE_DIM_LEVEL="5"
+config_MESH_DURING_SUSPEND="no"
+config_WAKE_ON_WLAN="no"
+config_WLAN_WAKE_FROM_BLANK_IDLE_SLEEP="no"
+config_KEYPRESS_WAKE_FROM_BLANK_IDLE_SLEEP="yes"
+config_MAX_SLEEP_BEFORE_SHUTDOWN="14400"
+config_ALLOW_SHUTDOWN_WHEN_PLUGGED="no"
+config_SLEEP_WHEN_LID_CLOSED="yes"
+config_WAKE_WHEN_LID_OPENED="no"
+config_CONFIRM_SECONDS="7"
+config_UNFREEZE_SECONDS="30"
+config_PWRLOG_INTERVAL="300"
