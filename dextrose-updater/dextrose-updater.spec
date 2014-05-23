@@ -12,6 +12,7 @@ Patch1:     networkmanager_hook.diff
 Patch2:     modify_yum_conf.diff
 Patch3:     clean_yum_caches.diff
 Patch4:     basic-message-notifications.patch
+Patch5:     fix-yum-check-update-parsing.patch
 
 BuildRoot:	%(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
 
@@ -30,6 +31,7 @@ A yum based updater for sugar-dextrose. Updates the sugar-dextrose related packa
 %patch2 -p1 -b .proxy
 %patch3 -p1 -b .clean_cache
 %patch4 -p1 -b .notify
+%patch5 -p1 -b .fix_update_parse
 
 %build
 

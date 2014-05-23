@@ -1,0 +1,26 @@
+From ae9f0fa22a72f5054b5ade9482ad1f58af2c5071 Mon Sep 17 00:00:00 2001
+From: Martin Abente Lahaye <tch@sugarlabs.org>
+Date: Fri, 23 May 2014 09:08:46 -0400
+Subject: [PATCH] Fix yum check-update parsing
+
+Signed-off-by: Martin Abente Lahaye <tch@sugarlabs.org>
+---
+ dextrose-updater | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/dextrose-updater b/dextrose-updater
+index f04ecb4..e3d5c53 100755
+--- a/dextrose-updater
++++ b/dextrose-updater
+@@ -108,7 +108,7 @@ updates() {
+         0)  exit 0
+             ;;
+         100)
+-            echo ${repos} | awk '/./{print $1 "-" $2}'
++            echo ${repos} | awk '/./{for (i=1;i<=NF;i++) if (i%3==0) print $(i-2)"-"$(i-1)}'
+             exit 0
+             ;;
+         *)  exit 1
+-- 
+1.8.3.1
+
