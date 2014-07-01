@@ -1,0 +1,41 @@
+From d9680e34a13f79c392d06407d9ad503f510e4cd2 Mon Sep 17 00:00:00 2001
+From: Martin Abente Lahaye <tch@sugarlabs.org>
+Date: Tue, 24 Jun 2014 13:16:09 -0400
+Subject: [PATCH 3/3] Fix black palettes
+
+Push the palette widget opening process to the latest
+in order to avoid the race condition where the animation
+takes of the place of the real palette.
+
+Fixes #2184
+
+Signed-off-by: Martin Abente Lahaye <tch@sugarlabs.org>
+---
+ src/sugar3/graphics/palette.py | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/src/sugar3/graphics/palette.py b/src/sugar3/graphics/palette.py
+index 6f70420..ece14a5 100644
+--- a/src/sugar3/graphics/palette.py
++++ b/src/sugar3/graphics/palette.py
+@@ -213,8 +213,6 @@ class Palette(PaletteWindow):
+         if self._invoker is not None:
+             self._update_full_request()
+ 
+-        PaletteWindow.popup(self, immediate)
+-
+         if state is None:
+             state = self.PRIMARY
+         self.set_palette_state(state)
+@@ -224,6 +222,8 @@ class Palette(PaletteWindow):
+         else:
+             self._secondary_anim.stop()
+ 
++        PaletteWindow.popup(self, immediate)
++
+     def popdown(self, immediate=False):
+         if immediate:
+             self._secondary_anim.stop()
+-- 
+1.9.3
+
