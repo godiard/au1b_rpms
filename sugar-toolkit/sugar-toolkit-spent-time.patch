@@ -1,0 +1,84 @@
+From d3aeb7cc4e4fe5b9903b10265a7cdb5c49d0eca6 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Manuel=20Qui=C3=B1ones?= <manuel.por.aca@gmail.com>
+Date: Mon, 26 May 2014 14:24:01 -0300
+Subject: [PATCH] Backport add spent-times to activity metadata
+
+---
+ src/sugar/activity/activity.py | 30 ++++++++++++++++++++++++++++++
+ 1 file changed, 30 insertions(+)
+
+diff --git a/src/sugar/activity/activity.py b/src/sugar/activity/activity.py
+index a0e2e11..c60dca2 100644
+--- a/src/sugar/activity/activity.py
++++ b/src/sugar/activity/activity.py
+@@ -291,6 +291,8 @@ class Activity(Window, gtk.Container):
+         self.connect('delete-event', self.__delete_event_cb)
+ 
+         self._active = False
++        self._active_time = None
++        self._spent_time = 0
+         self._activity_id = handle.activity_id
+         self.shared_activity = None
+         self._join_id = None
+@@ -331,6 +333,11 @@ class Activity(Window, gtk.Container):
+                 self._jobject.metadata['launch-times'] = \
+                     str(int(time.time()))
+ 
++            if 'spent-times' in self._jobject.metadata:
++                self._jobject.metadata['spent-times'] += ', 0'
++            else:
++                self._jobject.metadata['spent-times'] = '0'
++
+         self.shared_activity = None
+         self._join_id = None
+ 
+@@ -384,6 +391,7 @@ class Activity(Window, gtk.Container):
+         jobject.metadata['share-scope'] = SCOPE_PRIVATE
+         jobject.metadata['icon-color'] = icon_color
+         jobject.metadata['launch-times'] = str(int(time.time()))
++        jobject.metadata['spent-times'] = '0'
+         jobject.file_path = ''
+ 
+         # FIXME: We should be able to get an ID synchronously from the DS,
+@@ -449,9 +457,17 @@ class Activity(Window, gtk.Container):
+     def get_active(self):
+         return self._active
+ 
++    def _update_spent_time(self, active):
++        if active:
++            self._active_time = time.time()
++        else:
++            self._spent_time += time.time() - self._active_time
++            self._active_time = None
++
+     def set_active(self, active):
+         if self._active != active:
+             self._active = active
++            self._update_spent_time(self._active)
+             if not self._active and self._jobject:
+                 self.save()
+ 
+@@ -688,6 +704,20 @@ class Activity(Window, gtk.Container):
+             self.metadata['buddies_id'] = json.dumps(buddies_dict.keys())
+             self.metadata['buddies'] = json.dumps(self._get_buddies())
+ 
++        # Accumulate the last spent time.
++        if self._active:
++            self._update_spent_time(False)
++
++        def set_last_value(values_list, new_value):
++            if ', ' not in values_list:
++                return '%d' % new_value
++            else:
++                partial_list = ', '.join(values_list.split(', ')[:-1])
++                return partial_list + ', %d' % new_value
++
++        self.metadata['spent-times'] = set_last_value(
++            self.metadata['spent-times'], self._spent_time)
++
+         preview = self.get_preview()
+         if preview is not None:
+             self.metadata['preview'] = dbus.ByteArray(preview)
+-- 
+1.8.3.1
+

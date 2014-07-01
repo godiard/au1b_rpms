@@ -3,11 +3,15 @@
 Summary: Sugar toolkit
 Name: sugar-toolkit
 Version: 0.98.1
-Release: 2.olpcau
+Release: 3.olpcau
 URL: http://wiki.laptop.org/go/Sugar
 Source0: http://download.sugarlabs.org/sources/sucrose/glucose/%{name}/%{name}-%{version}.tar.bz2
 #Source1: macros.sugar
 Patch0: 0001-Inhibit-suspend-while-sharing-OLPC-10363.patch
+
+# AU1C
+Patch10: sugar-toolkit-spent-time.patch
+
 License: LGPLv2+
 Group: System Environment/Libraries
 
@@ -41,6 +45,7 @@ to interact with system services like presence and the datastore.
 %prep
 %setup -q
 %patch0 -p1
+%patch10 -p1
 
 %build
 %configure
