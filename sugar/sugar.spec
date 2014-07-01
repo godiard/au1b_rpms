@@ -3,7 +3,7 @@
 Summary: Constructionist learning platform
 Name:    sugar
 Version: 0.100.1
-Release: 17.olpcau.test
+Release: 18.olpcau.test
 URL:     http://sugarlabs.org/
 License: GPLv2+
 Group:   User Interface/Desktops
@@ -46,8 +46,6 @@ Patch51: 0002-Use-introspection-instead-of-dbus-to-set-wireless-on.patch
 Patch52: 0003-Do-not-set-the-hidden-network-interface-if-wifi-is-o.patch
 Patch53: 0004-Proxy-cntlm-implementation.patch
 
-# From here, need be ported to 0.102
-
 Patch54: 0005-Avoid-block-ui-trying-to-connect-to-hidden-ui-if-not.patch
 Patch55: 0006-Initialize-network-cp-with-proxy-selected-Fixes-XOS-.patch
 
@@ -70,6 +68,12 @@ Patch69: 0001-Fix-WPA2-EAP-dialog-ObjectChooser.patch
 
 Patch70: 0001-hidden-networks-Show-messges-to-the-user-on-succes-o.patch
 Patch71: 0001-Do-not-cache-BuddyMenu-in-favorites-view.patch
+
+# AU1C
+
+Patch100: 0001-Convert-to-configurable-age-gender-pages-and-force-g.patch
+Patch101: 0002-Remove-the-option-of-automatic-proxya-XOS-63.patch
+
 
 BuildRequires: gettext
 BuildRequires: GConf2-devel
@@ -272,6 +276,8 @@ This is the Sugar Web Services. Right now, only Teacher.
 %patch70 -p1
 %patch71 -p1
 
+%patch100 -p1
+%patch101 -p1
 
 %build
 # need run it again to include new files

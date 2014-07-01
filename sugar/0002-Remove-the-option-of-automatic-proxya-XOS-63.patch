@@ -1,0 +1,28 @@
+From 25d450aee84d315818b2e387ade7116c94d6cf9a Mon Sep 17 00:00:00 2001
+From: Gonzalo Odiard <godiard@gmail.com>
+Date: Mon, 30 Jun 2014 18:05:20 -0300
+Subject: [PATCH 2/2] Remove the option of automatic proxya - XOS-63
+
+yum does not work with libproxy in F18.
+Until we can jump to F20, we need hide this option.
+---
+ extensions/cpsection/network/view.py | 3 +--
+ 1 file changed, 1 insertion(+), 2 deletions(-)
+
+diff --git a/extensions/cpsection/network/view.py b/extensions/cpsection/network/view.py
+index b761e26..e2aaa5d 100644
+--- a/extensions/cpsection/network/view.py
++++ b/extensions/cpsection/network/view.py
+@@ -659,8 +659,7 @@ class Network(SectionView):
+         manual_proxy_box = Gtk.VBox(spacing=style.DEFAULT_SPACING)
+ 
+         option_sets = [('None', 'none', Gtk.VBox(), None),
+-                       ('Manual', 'manual', manual_proxy_box, None),
+-                       ('Automatic', 'auto', automatic_proxy_box, None)]
++                       ('Manual', 'manual', manual_proxy_box, None)]
+ 
+         # get the list of connectivity profiles of type "proxy"
+         proxy_profiles = []
+-- 
+1.9.3
+
