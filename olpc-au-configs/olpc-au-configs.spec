@@ -1,7 +1,7 @@
 Summary: Configs needed by the olpc-au image
 Name:    olpc-au-configs
 Version: 0.1
-Release: 14
+Release: 15
 URL:     https://www.laptop.org.au/
 License: LGPL
 Group:   User Interface/Desktops
@@ -120,6 +120,10 @@ gconftool-2 --direct --config-source=xml:readwrite:/etc/gconf/gconf.xml.defaults
 cp /etc/powerd/powerd.conf.olpcau /etc/powerd/powerd.conf
 
 %changelog
+* Mon Jul 07 2014 Martin Abente Lahaye <tch@sugarlabs.org> 0.1-15
+- add new packages
+- add harvest reponame for snapshot
+
 * Thu Mar 13 2014 Martin Abente Lahaye <tch@sugarlabs.org> 0.1-6
 - add role id
 
