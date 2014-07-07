@@ -9,6 +9,8 @@ Source0: olpc-au-configs-0.1.tar
 
 Requires: GConf2
 Requires: sugar
+Requires: harvest-tracker
+Requires: harvest-monitor
 
 BuildArch: noarch
 
@@ -109,6 +111,9 @@ gconftool-2 --direct --config-source=xml:readwrite:/etc/gconf/gconf.xml.defaults
 # Browse home page
 gconftool-2 --direct --config-source=xml:readwrite:/etc/gconf/gconf.xml.defaults \
     -s -t string /desktop/sugar/browser/home_page "file:///usr/share/sugar/data/browse/index.html"
+
+# enable custom services
+/bin/systemctl enable harvest-monitor
 
 # re-write powerd.conf file with olpcau tweaked version
 cp /etc/powerd/powerd.conf.olpcau /etc/powerd/powerd.conf
