@@ -85,6 +85,8 @@ gconftool-2 --direct --config-source xml:readwrite:/etc/gconf/gconf.xml.defaults
     --type string -s /desktop/sugar/collaboration/harvest_hostname https://harvest.one-education.org
 gconftool-2 --direct --config-source xml:readwrite:/etc/gconf/gconf.xml.defaults \
     --type boolean -s /desktop/sugar/collaboration/harvest_editable false
+gconftool-2 --direct --config-source xml:readwrite:/etc/gconf/gconf.xml.defaults \
+    --type string -s /desktop/sugar/collaboration/harvest_reponame au1b-updates
 
 # Training server configuration
 gconftool-2 --direct --config-source xml:readwrite:/etc/gconf/gconf.xml.defaults \
