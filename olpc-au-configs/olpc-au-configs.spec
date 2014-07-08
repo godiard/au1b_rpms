@@ -9,6 +9,7 @@ Source0: olpc-au-configs-0.1.tar
 
 Requires: GConf2
 Requires: sugar
+Requires: olpc-powerd
 Requires: harvest-tracker
 Requires: harvest-monitor
 
