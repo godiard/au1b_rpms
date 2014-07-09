@@ -1,9 +1,11 @@
-From 70fd26c8d794286cf45ef4157c82ca4c5dd764da Mon Sep 17 00:00:00 2001
+From 4197af5d4c322fab72ec08fa8468b0cb85ae4d41 Mon Sep 17 00:00:00 2001
 From: Walter Bender <walter@sugarlabs.org>
-Date: Wed, 4 Jun 2014 08:38:50 -0400
-Subject: [PATCH 1/2] Convert to configurable age/gender pages and force group
- intro page if grade level not set
+Date: Wed, 9 Jul 2014 12:25:12 -0400
+Subject: [PATCH] Convert to configurable age/gender pages
 
+This patch uses a database to assign the age group names and forces
+group intro page if grade level not set. It is a backport of a patch
+prepared for Sugar 102 (gsettings -> gconf).
 ---
  bin/sugar.in                          |   4 +
  data/Makefile.am                      |   1 +
@@ -12,10 +14,11 @@ Subject: [PATCH 1/2] Convert to configurable age/gender pages and force group
  extensions/cpsection/aboutme/view.py  | 394 ++++++++++++++--------------------
  src/jarabe/intro/__init__.py          |   7 +
  src/jarabe/intro/agepicker.py         | 318 ++++++++++++++++++++++-----
+ src/jarabe/intro/colorpicker.py       |   1 +
  src/jarabe/intro/genderpicker.py      | 104 +++++----
- src/jarabe/intro/window.py            | 233 ++++++++++++--------
+ src/jarabe/intro/window.py            | 231 ++++++++++++--------
  src/jarabe/main.py                    |  12 +-
- 10 files changed, 653 insertions(+), 502 deletions(-)
+ 11 files changed, 653 insertions(+), 501 deletions(-)
  create mode 100644 data/group-labels.defaults
 
 diff --git a/bin/sugar.in b/bin/sugar.in
@@ -1116,6 +1119,18 @@ index aafaf22..a97d9a0 100644
 +        for i in range(len(self._group_stats.AGES)):
 +            self._pickers[i].set_icon(
 +                self._group_stats.AGE_ICONS[i][gender_index])
+diff --git a/src/jarabe/intro/colorpicker.py b/src/jarabe/intro/colorpicker.py
+index 427600f..fde8584 100644
+--- a/src/jarabe/intro/colorpicker.py
++++ b/src/jarabe/intro/colorpicker.py
+@@ -34,6 +34,7 @@ class ColorPicker(Gtk.EventBox):
+         self._set_random_colors()
+         self.connect('button-press-event', self._button_press_cb)
+         self.add(self._xo)
++        self._xo.show()
+ 
+     def _button_press_cb(self, widget, event):
+         if event.button == 1 and event.type == Gdk.EventType.BUTTON_PRESS:
 diff --git a/src/jarabe/intro/genderpicker.py b/src/jarabe/intro/genderpicker.py
 index 0bb466f..58047a8 100644
 --- a/src/jarabe/intro/genderpicker.py
@@ -1257,7 +1272,7 @@ index 0bb466f..58047a8 100644
 +        if self._gender in GENDERS:
 +            self._buttons[GENDERS.index(self._gender)].xo_color = self._color
 diff --git a/src/jarabe/intro/window.py b/src/jarabe/intro/window.py
-index cde434c..9b0d4be 100644
+index cde434c..823e7df 100644
 --- a/src/jarabe/intro/window.py
 +++ b/src/jarabe/intro/window.py
 @@ -20,12 +20,14 @@ import logging
@@ -1336,7 +1351,7 @@ index cde434c..9b0d4be 100644
      client.suggest_sync()
  
      if profile.get_pubkey() and profile.get_profile().privkey_hash:
-@@ -125,17 +122,22 @@ class _NamePage(_Page):
+@@ -125,17 +122,23 @@ class _NamePage(_Page):
          alignment = Gtk.Alignment.new(0.5, 0.5, 0, 0)
          self.pack_start(alignment, expand=True, fill=True, padding=0)
  
@@ -1357,13 +1372,14 @@ index cde434c..9b0d4be 100644
          self._entry.set_max_length(45)
 -        hbox.pack_start(self._entry, False, True, 0)
 +        grid.attach(self._entry, 0, 1, 1, 1)
++        self._entry.show()
 +
 +        grid.show()
 +        alignment.show()
  
      def _text_changed_cb(self, entry, pspec):
          valid = len(entry.props.text.strip()) > 0
-@@ -151,18 +153,56 @@ class _NamePage(_Page):
+@@ -151,18 +154,56 @@ class _NamePage(_Page):
          self._entry.grab_focus()
  
  
@@ -1425,7 +1441,7 @@ index cde434c..9b0d4be 100644
  
          self._gender = self._gp.get_gender()
          self.set_valid(True)
-@@ -178,81 +218,67 @@ class _AgePage(_Page):
+@@ -178,81 +219,67 @@ class _AgePage(_Page):
      def __init__(self, gender):
          _Page.__init__(self)
  
@@ -1522,8 +1538,7 @@ index cde434c..9b0d4be 100644
          self._next_button = None
  
          client = GConf.Client.get_default()
--        default_nick = client.get_string('/desktop/sugar/user/default_nick')
-+        default_nick = client.get_string('/desktop/sugar/user/default-nick')
+         default_nick = client.get_string('/desktop/sugar/user/default_nick')
          if default_nick != 'disabled':
 -            self._page = self.PAGE_COLOR
 +            if start_on_group_page:
@@ -1533,7 +1548,7 @@ index cde434c..9b0d4be 100644
              if default_nick == 'system':
                  pwd_entry = pwd.getpwuid(os.getuid())
                  default_nick = (pwd_entry.pw_gecos.split(',')[0] or
-@@ -265,26 +291,36 @@ class _IntroBox(Gtk.VBox):
+@@ -265,26 +292,36 @@ class _IntroBox(Gtk.VBox):
          for child in self.get_children():
              self.remove(child)
  
@@ -1577,7 +1592,7 @@ index cde434c..9b0d4be 100644
          if self._page == self.PAGE_FIRST:
              button_box.set_layout(Gtk.ButtonBoxStyle.END)
          else:
-@@ -294,6 +330,7 @@ class _IntroBox(Gtk.VBox):
+@@ -294,6 +331,7 @@ class _IntroBox(Gtk.VBox):
              back_button.set_image(image)
              back_button.connect('clicked', self._back_activated_cb)
              button_box.pack_start(back_button, True, True, 0)
@@ -1585,7 +1600,7 @@ index cde434c..9b0d4be 100644
  
          self._next_button = Gtk.Button()
          image = Icon(icon_name='go-right')
-@@ -310,12 +347,14 @@ class _IntroBox(Gtk.VBox):
+@@ -310,12 +348,13 @@ class _IntroBox(Gtk.VBox):
  
          self._update_next_button()
          button_box.pack_start(self._next_button, True, True, 0)
@@ -1597,7 +1612,6 @@ index cde434c..9b0d4be 100644
          self.pack_start(button_box, False, True, 0)
 -        self.show_all()
 +        button_box.show()
-+        # self.show_all()
  
      def _update_next_button(self):
          self._next_button.set_sensitive(self._current_page.props.valid)
@@ -1700,5 +1714,5 @@ index bf01075..4581c32 100755
          _begin_desktop_startup()
  
 -- 
-1.9.3
+1.8.3.1
 
