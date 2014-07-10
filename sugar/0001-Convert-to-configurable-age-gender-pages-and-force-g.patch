@@ -1,4 +1,4 @@
-From 4197af5d4c322fab72ec08fa8468b0cb85ae4d41 Mon Sep 17 00:00:00 2001
+From 04954bd5a930d2e0cd9a0854d4adc27a9dec69f0 Mon Sep 17 00:00:00 2001
 From: Walter Bender <walter@sugarlabs.org>
 Date: Wed, 9 Jul 2014 12:25:12 -0400
 Subject: [PATCH] Convert to configurable age/gender pages
@@ -6,6 +6,8 @@ Subject: [PATCH] Convert to configurable age/gender pages
 This patch uses a database to assign the age group names and forces
 group intro page if grade level not set. It is a backport of a patch
 prepared for Sugar 102 (gsettings -> gconf).
+
+VERSION 3: fix default_nick typo and disabled flawed logic
 ---
  bin/sugar.in                          |   4 +
  data/Makefile.am                      |   1 +
@@ -18,7 +20,7 @@ prepared for Sugar 102 (gsettings -> gconf).
  src/jarabe/intro/genderpicker.py      | 104 +++++----
  src/jarabe/intro/window.py            | 231 ++++++++++++--------
  src/jarabe/main.py                    |  12 +-
- 11 files changed, 653 insertions(+), 501 deletions(-)
+ 11 files changed, 654 insertions(+), 500 deletions(-)
  create mode 100644 data/group-labels.defaults
 
 diff --git a/bin/sugar.in b/bin/sugar.in
@@ -1272,7 +1274,7 @@ index 0bb466f..58047a8 100644
 +        if self._gender in GENDERS:
 +            self._buttons[GENDERS.index(self._gender)].xo_color = self._color
 diff --git a/src/jarabe/intro/window.py b/src/jarabe/intro/window.py
-index cde434c..823e7df 100644
+index cde434c..7be616c 100644
 --- a/src/jarabe/intro/window.py
 +++ b/src/jarabe/intro/window.py
 @@ -20,12 +20,14 @@ import logging
@@ -1420,13 +1422,13 @@ index cde434c..823e7df 100644
 -        self.pack_start(vbox, expand=True, fill=False, padding=0)
 +        alignment = Gtk.Alignment.new(0.5, 0.5, 0, 0)
 +        self.pack_start(alignment, expand=True, fill=True, padding=0)
- 
--        self._label = Gtk.Label(label=_('Select gender:'))
--        vbox.pack_start(self._label, True, True, 0)
++
 +        grid = Gtk.Grid()
 +        grid.set_column_spacing(style.DEFAULT_SPACING)
 +        alignment.add(grid)
-+
+ 
+-        self._label = Gtk.Label(label=_('Select gender:'))
+-        vbox.pack_start(self._label, True, True, 0)
 +        label = Gtk.Label(label=_('Select gender:'))
 +        grid.attach(label, 0, 0, 1, 1)
 +        label.show()
@@ -1441,7 +1443,7 @@ index cde434c..823e7df 100644
  
          self._gender = self._gp.get_gender()
          self.set_valid(True)
-@@ -178,81 +219,67 @@ class _AgePage(_Page):
+@@ -178,74 +219,57 @@ class _AgePage(_Page):
      def __init__(self, gender):
          _Page.__init__(self)
  
@@ -1455,18 +1457,18 @@ index cde434c..823e7df 100644
 +        alignment.add(grid)
 +
 +        self._ap = agepicker.AgePicker(gender, self)
- 
--        self._label = Gtk.Label(label=_('Select age:'))
--        vbox.pack_start(self._label, True, True, 0)
++
 +        label = Gtk.Label(label=_(self._ap.get_label()))
 +        grid.attach(label, 0, 0, 1, 1)
 +        label.show()
  
--        self._ap = agepicker.AgePicker(gender)
--        vbox.pack_start(self._ap, True, True, 0)
+-        self._label = Gtk.Label(label=_('Select age:'))
+-        vbox.pack_start(self._label, True, True, 0)
 +        grid.attach(self._ap, 0, 1, 1, 1)
 +        self._ap.show()
-+
+ 
+-        self._ap = agepicker.AgePicker(gender)
+-        vbox.pack_start(self._ap, True, True, 0)
 +        grid.show()
 +        alignment.show()
  
@@ -1537,18 +1539,18 @@ index cde434c..823e7df 100644
          self._current_page = None
          self._next_button = None
  
-         client = GConf.Client.get_default()
-         default_nick = client.get_string('/desktop/sugar/user/default_nick')
-         if default_nick != 'disabled':
--            self._page = self.PAGE_COLOR
-+            if start_on_group_page:
-+                self._page = self.PAGE_AGE
-+            else:
-+                self._page = self.PAGE_COLOR
-             if default_nick == 'system':
-                 pwd_entry = pwd.getpwuid(os.getuid())
-                 default_nick = (pwd_entry.pw_gecos.split(',')[0] or
-@@ -265,26 +292,36 @@ class _IntroBox(Gtk.VBox):
+@@ -259,32 +283,47 @@ class _IntroBox(Gtk.VBox):
+                                 pwd_entry.pw_name)
+             self._name_page.set_name(default_nick)
+ 
++        # XXX should also consider whether or not there is a nick
++        nick = client.get_string('/desktop/sugar/user/nick')
++        if start_on_group_page and nick:
++            self._page = self.PAGE_AGE
++
+         self._setup_page()
+ 
+     def _setup_page(self):
          for child in self.get_children():
              self.remove(child)
  
@@ -1592,7 +1594,7 @@ index cde434c..823e7df 100644
          if self._page == self.PAGE_FIRST:
              button_box.set_layout(Gtk.ButtonBoxStyle.END)
          else:
-@@ -294,6 +331,7 @@ class _IntroBox(Gtk.VBox):
+@@ -294,6 +333,7 @@ class _IntroBox(Gtk.VBox):
              back_button.set_image(image)
              back_button.connect('clicked', self._back_activated_cb)
              button_box.pack_start(back_button, True, True, 0)
@@ -1600,7 +1602,7 @@ index cde434c..823e7df 100644
  
          self._next_button = Gtk.Button()
          image = Icon(icon_name='go-right')
-@@ -310,12 +348,13 @@ class _IntroBox(Gtk.VBox):
+@@ -310,12 +350,13 @@ class _IntroBox(Gtk.VBox):
  
          self._update_next_button()
          button_box.pack_start(self._next_button, True, True, 0)
@@ -1615,7 +1617,7 @@ index cde434c..823e7df 100644
  
      def _update_next_button(self):
          self._next_button.set_sensitive(self._current_page.props.valid)
-@@ -345,12 +384,22 @@ class _IntroBox(Gtk.VBox):
+@@ -345,12 +386,22 @@ class _IntroBox(Gtk.VBox):
          self.done()
  
      def done(self):
@@ -1643,7 +1645,7 @@ index cde434c..823e7df 100644
  
  
  class IntroWindow(Gtk.Window):
-@@ -360,25 +409,25 @@ class IntroWindow(Gtk.Window):
+@@ -360,25 +411,25 @@ class IntroWindow(Gtk.Window):
          'done': (GObject.SignalFlags.RUN_FIRST, None, ([])),
      }
  
