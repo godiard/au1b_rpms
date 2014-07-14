@@ -1,4 +1,4 @@
-From 04954bd5a930d2e0cd9a0854d4adc27a9dec69f0 Mon Sep 17 00:00:00 2001
+From 51ab56596b9d0694edf234cc7a06a629920b0a6c Mon Sep 17 00:00:00 2001
 From: Walter Bender <walter@sugarlabs.org>
 Date: Wed, 9 Jul 2014 12:25:12 -0400
 Subject: [PATCH] Convert to configurable age/gender pages
@@ -8,6 +8,7 @@ group intro page if grade level not set. It is a backport of a patch
 prepared for Sugar 102 (gsettings -> gconf).
 
 VERSION 3: fix default_nick typo and disabled flawed logic
+VERSION 5: fix grade-selection intro and grade-gender setup
 ---
  bin/sugar.in                          |   4 +
  data/Makefile.am                      |   1 +
@@ -17,10 +18,10 @@ VERSION 3: fix default_nick typo and disabled flawed logic
  src/jarabe/intro/__init__.py          |   7 +
  src/jarabe/intro/agepicker.py         | 318 ++++++++++++++++++++++-----
  src/jarabe/intro/colorpicker.py       |   1 +
- src/jarabe/intro/genderpicker.py      | 104 +++++----
+ src/jarabe/intro/genderpicker.py      | 102 +++++----
  src/jarabe/intro/window.py            | 231 ++++++++++++--------
  src/jarabe/main.py                    |  12 +-
- 11 files changed, 654 insertions(+), 500 deletions(-)
+ 11 files changed, 653 insertions(+), 499 deletions(-)
  create mode 100644 data/group-labels.defaults
 
 diff --git a/bin/sugar.in b/bin/sugar.in
@@ -180,7 +181,7 @@ index 7dc3c32..ce1fad1 100644
      client.set_string('/desktop/sugar/user/color', color)
      return 1
 diff --git a/extensions/cpsection/aboutme/view.py b/extensions/cpsection/aboutme/view.py
-index f9a9b92..4c8d01c 100644
+index f9a9b92..e4b9581 100644
 --- a/extensions/cpsection/aboutme/view.py
 +++ b/extensions/cpsection/aboutme/view.py
 @@ -1,5 +1,7 @@
@@ -596,7 +597,7 @@ index f9a9b92..4c8d01c 100644
 +        grid.set_row_spacing(style.DEFAULT_SPACING)
 +        grid.set_column_spacing(style.DEFAULT_SPACING)
 +
-+        self._age_pickers = AgePicker(self._gender)
++        self._age_pickers = AgePicker(self._saved_gender)
 +        center_in_panel = Gtk.Alignment.new(0.5, 0, 0, 0)
 +        center_in_panel.add(self._age_pickers)
 +        self._age_pickers.show()
@@ -1134,7 +1135,7 @@ index 427600f..fde8584 100644
      def _button_press_cb(self, widget, event):
          if event.button == 1 and event.type == Gdk.EventType.BUTTON_PRESS:
 diff --git a/src/jarabe/intro/genderpicker.py b/src/jarabe/intro/genderpicker.py
-index 0bb466f..58047a8 100644
+index 0bb466f..0a13ed6 100644
 --- a/src/jarabe/intro/genderpicker.py
 +++ b/src/jarabe/intro/genderpicker.py
 @@ -1,4 +1,5 @@
@@ -1190,7 +1191,7 @@ index 0bb466f..58047a8 100644
 +        self.set_row_spacing(style.DEFAULT_SPACING)
 +        self.set_column_spacing(style.DEFAULT_SPACING)
 +
-+        self._gender = self.get_gender()
++        self._gender = load_gender()
          self._buttons = []
          self._nocolor = XoColor('#010101,#ffffff')
          self._color = XoColor()
@@ -1258,8 +1259,7 @@ index 0bb466f..58047a8 100644
 +            self._buttons[1 - gender_index].xo_color = self._nocolor
  
      def get_gender(self):
--        return self._gender
-+        return load_gender()
+         return self._gender
  
      def _set_gender(self, gender):
 +        self.gender_changed_signal.emit(gender)
