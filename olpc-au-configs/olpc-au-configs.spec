@@ -12,7 +12,6 @@ Requires: sugar
 Requires: olpc-powerd
 Requires: harvest-tracker
 Requires: harvest-monitor
-Requires: tuxpaint-stamps
 
 BuildArch: noarch
 
