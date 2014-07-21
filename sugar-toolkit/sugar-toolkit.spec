@@ -3,7 +3,7 @@
 Summary: Sugar toolkit
 Name: sugar-toolkit
 Version: 0.98.1
-Release: 3.olpcau
+Release: 4.olpcau
 URL: http://wiki.laptop.org/go/Sugar
 Source0: http://download.sugarlabs.org/sources/sucrose/glucose/%{name}/%{name}-%{version}.tar.bz2
 #Source1: macros.sugar
