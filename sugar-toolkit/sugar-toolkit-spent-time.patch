@@ -1,14 +1,15 @@
-From d3aeb7cc4e4fe5b9903b10265a7cdb5c49d0eca6 Mon Sep 17 00:00:00 2001
+From b2dd991830b9995adaae532ffcc1bd1789d59d26 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Manuel=20Qui=C3=B1ones?= <manuel.por.aca@gmail.com>
 Date: Mon, 26 May 2014 14:24:01 -0300
 Subject: [PATCH] Backport add spent-times to activity metadata
 
+VERSION2: make it robust for consecutive saves.
 ---
- src/sugar/activity/activity.py | 30 ++++++++++++++++++++++++++++++
- 1 file changed, 30 insertions(+)
+ src/sugar/activity/activity.py | 33 +++++++++++++++++++++++++++++++++
+ 1 file changed, 33 insertions(+)
 
 diff --git a/src/sugar/activity/activity.py b/src/sugar/activity/activity.py
-index a0e2e11..c60dca2 100644
+index a0e2e11..ce2ae29 100644
 --- a/src/sugar/activity/activity.py
 +++ b/src/sugar/activity/activity.py
 @@ -291,6 +291,8 @@ class Activity(Window, gtk.Container):
@@ -40,31 +41,34 @@ index a0e2e11..c60dca2 100644
          jobject.file_path = ''
  
          # FIXME: We should be able to get an ID synchronously from the DS,
-@@ -449,9 +457,17 @@ class Activity(Window, gtk.Container):
+@@ -449,9 +457,21 @@ class Activity(Window, gtk.Container):
      def get_active(self):
          return self._active
  
-+    def _update_spent_time(self, active):
-+        if active:
++    def _update_spent_time(self):
++        if self._active is True and self._active_time is None:
 +            self._active_time = time.time()
-+        else:
++        elif self._active is False and self._active_time is not None:
 +            self._spent_time += time.time() - self._active_time
 +            self._active_time = None
++        elif self._active is True and self._active_time is not None:
++            current = time.time()
++            self._spent_time += current - self._active_time
++            self._active_time = current
 +
      def set_active(self, active):
          if self._active != active:
              self._active = active
-+            self._update_spent_time(self._active)
++            self._update_spent_time()
              if not self._active and self._jobject:
                  self.save()
  
-@@ -688,6 +704,20 @@ class Activity(Window, gtk.Container):
+@@ -688,6 +708,19 @@ class Activity(Window, gtk.Container):
              self.metadata['buddies_id'] = json.dumps(buddies_dict.keys())
              self.metadata['buddies'] = json.dumps(self._get_buddies())
  
-+        # Accumulate the last spent time.
-+        if self._active:
-+            self._update_spent_time(False)
++        # update spent time before saving
++        self._update_spent_time()
 +
 +        def set_last_value(values_list, new_value):
 +            if ', ' not in values_list:
