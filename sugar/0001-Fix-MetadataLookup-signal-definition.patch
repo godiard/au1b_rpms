@@ -1,0 +1,34 @@
+From 161e36f99fbc21cbd563d2d07daba286f261e41b Mon Sep 17 00:00:00 2001
+From: Martin Abente Lahaye <tch@sugarlabs.org>
+Date: Wed, 6 Aug 2014 14:53:49 -0400
+Subject: [PATCH] Fix MetadataLookup signal definition
+
+Signed-off-by: Martin Abente Lahaye <tch@sugarlabs.org>
+---
+ src/jarabe/model/update/microformat.py | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/src/jarabe/model/update/microformat.py b/src/jarabe/model/update/microformat.py
+index 0bcd50d..c16ae15 100644
+--- a/src/jarabe/model/update/microformat.py
++++ b/src/jarabe/model/update/microformat.py
+@@ -306,7 +306,8 @@ class MetadataLookup(GObject.GObject):
+     and there is no local source of the activity's name.
+     """
+     __gsignals__ = {
+-        'complete': (GObject.SignalFlags.RUN_FIRST, None, (object, int, str)),
++        'complete': (GObject.SignalFlags.RUN_FIRST,
++                     None, (object, object, object)),
+     }
+ 
+     def __init__(self, url):
+@@ -404,6 +405,5 @@ class MetadataLookup(GObject.GObject):
+         return cp.get('Library', parameter)
+ 
+     def _complete(self, result):
+-        logging.error('MetadataLookup._complete icon_data %s', self._icon_data)
+         GLib.idle_add(self.emit, 'complete', result, self._size,
+                       self._icon_data)
+-- 
+1.8.3.1
+

@@ -73,6 +73,7 @@ Patch71: 0001-Do-not-cache-BuddyMenu-in-favorites-view.patch
 
 Patch100: 0001-Convert-to-configurable-age-gender-pages-and-force-g.patch
 Patch101: 0002-Remove-the-option-of-automatic-proxya-XOS-63.patch
+Patch102: 0001-Fix-MetadataLookup-signal-definition.patch
 
 
 BuildRequires: gettext
@@ -278,6 +279,7 @@ This is the Sugar Web Services. Right now, only Teacher.
 
 %patch100 -p1
 %patch101 -p1
+%patch102 -p1
 
 %build
 # need run it again to include new files
