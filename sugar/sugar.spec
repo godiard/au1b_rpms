@@ -3,7 +3,7 @@
 Summary: Constructionist learning platform
 Name:    sugar
 Version: 0.100.1
-Release: 21.olpcau
+Release: 22.olpcau
 URL:     http://sugarlabs.org/
 License: GPLv2+
 Group:   User Interface/Desktops
