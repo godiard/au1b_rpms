@@ -47,7 +47,7 @@ gconftool-2 --direct --config-source xml:readwrite:/etc/gconf/gconf.xml.defaults
 # microformat updater url to use.
 gconftool-2 --direct --config-source xml:readwrite:/etc/gconf/gconf.xml.defaults \
     --type string --set /desktop/sugar/update/microformat_update_url \
-    http://wiki.laptop.org/go/Activities/OLPCAU/ARM-test-addons/13.2.0
+    http://system.one-education.org/au1c/activities/arm/
 
 # Enable microformat updater.
 gconftool-2 --direct --config-source xml:readwrite:/etc/gconf/gconf.xml.defaults \
